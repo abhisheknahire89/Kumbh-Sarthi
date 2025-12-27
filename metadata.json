@@ -1,0 +1,8 @@
+{
+  "name": "VEDA - Virtual Expert for Diagnosis Assistance",
+  "description": "An AI-powered diagnostic assistant using a Retrieval-Augmented Generation (RAG) system with Supabase for its knowledge base, providing context-aware and accurate responses.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
