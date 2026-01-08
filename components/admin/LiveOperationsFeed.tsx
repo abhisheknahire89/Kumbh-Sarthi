@@ -22,7 +22,11 @@ const generateMockCase = (): EmergencyCase => {
         },
         metrics: {
             detectionTime: Math.floor(Math.random() * 5) + 2,
-        }
+        },
+        transcriptSnippet: type === 'Medical' ? "My chest hurts, I need a doctor!" :
+            type === 'Fire' ? "There is smoke near the temple!" :
+                type === 'LostPerson' ? "I can't find my 6 year old son." :
+                    type === 'Crowd' ? "Too many people, someone fainted!" : "Help police needed here!"
     };
 };
 

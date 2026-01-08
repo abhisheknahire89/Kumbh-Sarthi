@@ -22,7 +22,7 @@ export const EmergencyDetailPanel: React.FC<EmergencyDetailPanelProps> = ({ data
                 <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-400">Current Status</span>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${data.status === 'New' ? 'bg-red-500 text-white animate-pulse' :
-                            data.status === 'Resolved' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+                        data.status === 'Resolved' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
                         }`}>
                         {data.status}
                     </span>
@@ -55,19 +55,20 @@ export const EmergencyDetailPanel: React.FC<EmergencyDetailPanelProps> = ({ data
                         {/* Event 1 */}
                         <div className="relative">
                             <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-500"></div>
-                            <div className="text-sm text-slate-300">Voice Trigger Detected</div>
-                            <div className="text-xs text-slate-500 font-mono">{new Date(data.timeline.voiceTrigger).toLocaleTimeString()}</div>
+                            <div className="text-sm text-slate-300 font-bold">🗣️ Pilgrim Distress Call Detected</div>
+                            <div className="text-xs text-slate-400 mt-1 italic">"{data.transcriptSnippet}"</div>
+                            <div className="text-xs text-slate-500 font-mono mt-1">{new Date(data.timeline.voiceTrigger).toLocaleTimeString()}</div>
                         </div>
                         {/* Event 2 */}
                         <div className="relative">
                             <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-red-500"></div>
-                            <div className="text-sm text-slate-300">Emergency Classified</div>
-                            <div className="text-xs text-slate-500 font-mono">{new Date(data.timeline.classified).toLocaleTimeString()}</div>
+                            <div className="text-sm text-slate-300 font-bold">🤖 AI Identified: {data.type} Issue</div>
+                            <div className="text-xs text-slate-500 font-mono mt-1">{new Date(data.timeline.classified).toLocaleTimeString()}</div>
                         </div>
                         {/* Mock Future Events */}
                         <div className="relative opacity-50">
                             <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-700 border border-slate-500"></div>
-                            <div className="text-sm text-slate-400">Dispatch Pending...</div>
+                            <div className="text-sm text-slate-400">Dispatching Nearest Team...</div>
                         </div>
                     </div>
                 </div>

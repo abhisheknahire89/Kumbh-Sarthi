@@ -8,6 +8,7 @@ export interface EmergencyCase {
     status: 'New' | 'Dispatched' | 'OnScene' | 'Resolved';
     coordinates: { lat: number; lng: number };
     language: string;
+    transcriptSnippet?: string; // Short text of what user said
     timeline: {
         voiceTrigger: string;
         classified: string;
