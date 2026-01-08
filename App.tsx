@@ -7,6 +7,7 @@ import { MapView } from './components/MapView';
 import { FacilitiesPanel } from './components/FacilitiesPanel';
 import { EmergencyPanel } from './components/EmergencyPanel';
 import { LostAndFound } from './components/LostAndFound';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { useAuth } from './contexts/AuthContext';
 import { SpinnerIcon } from './components/icons';
 import { getCurrentLocation } from './services/locationService';
@@ -14,7 +15,11 @@ import type { Coordinates, FacilityType } from './types';
 
 function App() {
   const { session, loading } = useAuth();
-  const [page, setPage] = useState<'chat' | 'profile' | 'map' | 'facilities' | 'emergency' | 'lostfound'>('chat');
+  // Check for admin URL parameter for "secret" access during demo
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialPage = urlParams.get('mode') === 'admin' ? 'admin' : 'chat';
+
+  const [page, setPage] = useState<'chat' | 'profile' | 'map' | 'facilities' | 'emergency' | 'lostfound' | 'admin'>(initialPage as any);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [selectedFacilityType, setSelectedFacilityType] = useState<FacilityType | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -41,6 +46,10 @@ function App() {
   // Make authentication optional for public event app
   // Users can use basic features without logging in
   const showAuthPage = false; // Set to true if you want to require login
+
+  if (page === 'admin') {
+    return <AdminDashboard />;
+  }
 
   if (showAuthPage && !session) {
     return <AuthPage />;
