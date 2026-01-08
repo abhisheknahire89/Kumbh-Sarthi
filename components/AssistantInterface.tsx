@@ -4,7 +4,7 @@ import { Waveform } from './Waveform';
 import { KumbhSarthiIcon, SettingsIcon, MicrophoneIcon } from './icons';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
 import { APP_NAME, APP_NAME_HINDI, KUMBH_CENTER, SHAHI_SNAN_DATES, EMERGENCY_CONTACTS, SUPPORTED_LANGUAGES } from '../constants';
-import { getAllFacilities, getCurrentLocation, formatDistance, getNearestFacility } from '../services/locationService';
+import { getAllFacilities, getCurrentLocation, formatDistance, getNearestFacility, openNavigation } from '../services/locationService';
 import { detectEmergencyKeywords, getEmergencyNumbersText, triggerEmergencyCall } from '../services/emergencyService';
 import type { Coordinates, Facility } from '../types';
 
@@ -219,12 +219,20 @@ CRITICAL INSTRUCTIONS:
 
 3. EMERGENCY DETECTION: If the devotee mentions ANY emergency (medical, lost person, theft, fire), IMMEDIATELY provide the relevant emergency number and ask if they need you to help them call.
 
-4. FACILITY ASSISTANCE: Help devotees find:
-   - Nearest toilets, water points, food stalls
-   - Medical aid and first aid centers
-   - Lost & Found centers
-   - Parking areas
-   - Important ghats for snan (ritual bathing)
+4. CRITICAL VOICE CONTRACT FOR LOCATION QUERIES (FACILITIES & NAVIGATION):
+   For ANY question about locations (toilets, ghats, medical, police, parking, temples, etc.), you MUST follow this EXACT 3-step sequence:
+
+   STEP 1: CONFIRMATION & DESCRIPTION
+   - "Yes, there is a [facility] nearby."
+   - "It is about [distance] meters away, [direction/landmark]."
+   - Use simple human units (steps/meters, left/right/near X).
+
+   STEP 2: OFFER ACTION (Do NOT open maps yet)
+   - "Would you like me to open directions in Google Maps, or should I guide you by voice?"
+
+   STEP 3: WAIT FOR USER
+   - Only call the 'open_maps' tool if the user explicitly agrees (says "Yes", "Open maps").
+   - If they say "Guide me", provide more verbal details instead.
 
 5. SPIRITUAL GUIDANCE: Answer questions about:
    - Shahi Snan dates and their significance
@@ -349,6 +357,28 @@ CONVERSATION STYLE:
                             nextStartTimeRef.current = 0;
                             if (!isStale()) setStatus('listening');
                         }
+
+                        // Handle tool calls from the model
+                        if (message.toolCall) {
+                            const functionCalls = message.toolCall.functionCalls;
+                            if (functionCalls && functionCalls.length > 0) {
+                                const responses = [];
+                                for (const call of functionCalls) {
+                                    if (call.name === 'open_maps') {
+                                        const { lat, lng, name } = call.args as any;
+                                        console.log('Opening maps for:', name, lat, lng);
+                                        openNavigation({ lat, lng }, name);
+                                        responses.push({
+                                            id: call.id,
+                                            response: { output: { success: true } }
+                                        });
+                                    }
+                                }
+                                sessionPromiseRef.current?.then(session => {
+                                    session.sendToolResponse({ functionResponses: responses });
+                                });
+                            }
+                        }
                     },
                     onerror: (e) => { setStatus('error'); },
                 },
@@ -357,7 +387,22 @@ CONVERSATION STYLE:
                     inputAudioTranscription: {},
                     outputAudioTranscription: {},
                     speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } },
-                    systemInstruction: systemPrompt
+                    systemInstruction: systemPrompt,
+                    tools: [{
+                        functionDeclarations: [{
+                            name: "open_maps",
+                            description: "Opens Google Maps directions to a specific location (lat/lng) with a given name.",
+                            parameters: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    lat: { type: Type.NUMBER, description: "Latitude of the destination" },
+                                    lng: { type: Type.NUMBER, description: "Longitude of the destination" },
+                                    name: { type: Type.STRING, description: "Name of the destination" }
+                                },
+                                required: ["lat", "lng"]
+                            }
+                        }]
+                    }]
                 },
             });
         } catch (err) { setStatus('error'); }
