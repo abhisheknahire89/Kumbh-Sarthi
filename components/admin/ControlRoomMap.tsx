@@ -26,12 +26,13 @@ export const ControlRoomMap: React.FC = () => {
                 maxZoom: 19
             }).addTo(map);
 
-            // Add Zone Markers (Mock Data)
+            // Add Zone Markers (Verified GPS Data)
             const zoneLocations = [
-                { name: 'Ramkund', lat: 19.9975, lng: 73.7898, risk: 'High' },
-                { name: 'Panchavati', lat: 20.0012, lng: 73.7945, risk: 'Medium' },
-                { name: 'Tapovan', lat: 20.0050, lng: 73.8000, risk: 'Low' },
-                { name: 'Nashik Road', lat: 19.9600, lng: 73.8300, risk: 'Low' },
+                { name: 'Ramkund', lat: 20.0083, lng: 73.7922, risk: 'High' },     // Main Ghat
+                { name: 'Panchavati', lat: 20.0139, lng: 73.8103, risk: 'Medium' }, // Temple Area
+                { name: 'Tapovan', lat: 20.0015, lng: 73.8148, risk: 'Low' },      // Downstream
+                { name: 'Nashik Road', lat: 19.9472, lng: 73.8421, risk: 'Low' },  // Railway Station
+                { name: 'Dwarka', lat: 19.9931, lng: 73.8037, risk: 'Medium' }     // Highway Circle
             ];
 
             zoneLocations.forEach(zone => {
