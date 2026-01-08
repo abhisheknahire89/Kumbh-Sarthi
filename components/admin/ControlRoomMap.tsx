@@ -28,11 +28,11 @@ export const ControlRoomMap: React.FC = () => {
 
             // Add Zone Markers (Verified GPS Data)
             const zoneLocations = [
-                { name: 'Ramkund', lat: 20.0083, lng: 73.7922, risk: 'High' },     // Main Ghat
-                { name: 'Panchavati', lat: 20.0139, lng: 73.8103, risk: 'Medium' }, // Temple Area
-                { name: 'Tapovan', lat: 20.0015, lng: 73.8148, risk: 'Low' },      // Downstream
-                { name: 'Nashik Road', lat: 19.9472, lng: 73.8421, risk: 'Low' },  // Railway Station
-                { name: 'Dwarka', lat: 19.9931, lng: 73.8037, risk: 'Medium' }     // Highway Circle
+                { name: 'Ramkund', lat: 20.0083, lng: 73.7922, risk: 'High', count: 45000 },     // Main Ghat
+                { name: 'Panchavati', lat: 20.0139, lng: 73.8103, risk: 'Medium', count: 12500 }, // Temple Area
+                { name: 'Tapovan', lat: 20.0015, lng: 73.8148, risk: 'Low', count: 3200 },      // Downstream
+                { name: 'Nashik Road', lat: 19.9472, lng: 73.8421, risk: 'Low', count: 8500 },  // Railway Station
+                { name: 'Dwarka', lat: 19.9931, lng: 73.8037, risk: 'Medium', count: 15000 }     // Highway Circle
             ];
 
             zoneLocations.forEach(zone => {
@@ -44,10 +44,17 @@ export const ControlRoomMap: React.FC = () => {
                     fillOpacity: 0.3,
                     radius: 300
                 }).addTo(map).bindPopup(`
-                    <div style="color: black">
-                        <strong>${zone.name}</strong><br/>
-                        Risk: ${zone.risk}<br/>
-                        Status: Active
+                    <div style="color: black; min-width: 150px">
+                        <strong style="font-size: 14px">${zone.name}</strong><br/>
+                        <div style="margin-top: 4px; display: flex; justify-content: space-between;">
+                            <span>Crowd:</span>
+                            <strong>${zone.count.toLocaleString()}</strong>
+                        </div>
+                        <div style="margin-top: 2px; display: flex; justify-content: space-between;">
+                            <span>Risk:</span>
+                            <span style="color: ${color}; font-weight: bold">${zone.risk}</span>
+                        </div>
+                        <div style="margin-top: 2px; font-size: 11px; opacity: 0.7">Status: Active</div>
                     </div>
                 `);
 
