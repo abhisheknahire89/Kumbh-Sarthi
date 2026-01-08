@@ -31,7 +31,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="flex items-center gap-4">
                     <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                     <h1 className="text-xl font-bold uppercase tracking-widest text-white">
-                        Veda Control Room <span className="text-xs px-2 py-1 bg-slate-800 rounded ml-2">LIVE</span>
+                        Kumbh Sarthi Control Room <span className="text-xs px-2 py-1 bg-slate-800 rounded ml-2">LIVE</span>
                     </h1>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
