@@ -1,27 +1,19 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { UserIcon } from './icons';
+import { UserIcon, MapIcon, HomeIcon, AlertIcon } from './icons';
+import { APP_NAME, APP_NAME_HINDI } from '../constants';
 
 interface HeaderProps {
-  setPage: (page: 'chat' | 'profile' | 'knowledge') => void;
+  setPage: (page: 'chat' | 'profile' | 'map' | 'facilities' | 'emergency') => void;
+  currentPage?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ setPage }) => {
+export const Header: React.FC<HeaderProps> = ({ setPage, currentPage = 'chat' }) => {
   const { user, profile, signOut } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const branding = useMemo(() => {
-    const hostname = window.location.hostname;
-    if (hostname.startsWith('scribe')) {
-      return { title: 'VEDA Scribe', subtitle: 'Clinical Intelligence & Documentation' };
-    } else if (hostname.startsWith('vedax')) {
-      return { title: 'VEDA X', subtitle: 'Advanced Diagnostic Reasoning' };
-    }
-    return { title: 'VEDA', subtitle: 'Virtual Expert for Diagnosis Assistance' };
-  }, []);
-  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -34,56 +26,95 @@ export const Header: React.FC<HeaderProps> = ({ setPage }) => {
     };
   }, []);
 
-  return (
-    <header className="p-4 bg-black/30 backdrop-blur-xl border-b border-white/10 w-full z-10 sticky top-0">
-      <div className="flex items-center justify-between max-w-4xl mx-auto">
-        <div className="flex items-center space-x-4">
-          <div className="relative p-2 bg-gradient-to-br from-brand-primary to-brand-accent rounded-lg shadow-md cursor-pointer" onClick={() => setPage('chat')}>
-             <div className="absolute -inset-1 bg-gradient-to-br from-brand-primary to-brand-accent rounded-lg blur opacity-50"></div>
-             <img src="https://raw.githubusercontent.com/akashmanjunath2505/public/main/favicon.png" alt="VEDA Logo" className="relative w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-brand-text-primary tracking-wide uppercase">{branding.title}</h1>
-            <p className="text-[10px] text-brand-text-secondary font-medium tracking-tight">{branding.subtitle}</p>
-          </div>
-        </div>
+  const navItems = [
+    { id: 'chat', label: 'Chat', labelHi: 'चैट', icon: '💬' },
+    { id: 'map', label: 'Map', labelHi: 'नक्शा', icon: '🗺️' },
+    { id: 'facilities', label: 'Facilities', labelHi: 'सुविधाएं', icon: '🔍' },
+  ];
 
-        {user && (
-          <div className="relative" ref={dropdownRef}>
-            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center space-x-2">
-              <span className="text-sm font-medium hidden sm:inline">{profile?.full_name || user.email}</span>
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="User Avatar" className="w-9 h-9 rounded-full object-cover border-2 border-brand-accent" />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center border-2 border-brand-accent">
-                    <UserIcon className="w-5 h-5 text-slate-300" />
-                </div>
-              )}
+  return (
+    <header className="bg-black/30 backdrop-blur-xl border-b border-white/10 w-full z-10 sticky top-0">
+      {/* Main Header */}
+      <div className="p-4">
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
+          <div className="flex items-center space-x-3" onClick={() => setPage('chat')} style={{ cursor: 'pointer' }}>
+            <div className="relative p-2 bg-gradient-to-br from-brand-primary to-brand-accent rounded-lg shadow-md">
+              <div className="absolute -inset-1 bg-gradient-to-br from-brand-primary to-brand-accent rounded-lg blur opacity-50"></div>
+              <span className="relative text-xl">🙏</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-brand-text-primary tracking-wide uppercase">{APP_NAME}</h1>
+              <p className="text-[10px] text-brand-text-secondary font-medium tracking-tight">{APP_NAME_HINDI} • कुंभ मेला नाशिक 2026</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Emergency SOS Button */}
+            <button
+              onClick={() => setPage('emergency')}
+              className="px-3 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all emergency-pulse"
+            >
+              🆘 SOS
             </button>
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-brand-surface border border-white/10 rounded-md shadow-lg py-1 animate-fade-in origin-top-right">
-                <button
-                  onClick={() => { setPage('profile'); setIsDropdownOpen(false); }}
-                  className="block w-full text-left px-4 py-2 text-sm text-brand-text-primary hover:bg-brand-primary/50"
-                >
-                  Profile
+
+            {/* User Menu */}
+            {user ? (
+              <div className="relative" ref={dropdownRef}>
+                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center space-x-2">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="User Avatar" className="w-9 h-9 rounded-full object-cover border-2 border-brand-accent" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center border-2 border-brand-accent">
+                      <UserIcon className="w-5 h-5 text-slate-300" />
+                    </div>
+                  )}
                 </button>
-                <button
-                  onClick={() => { setPage('knowledge'); setIsDropdownOpen(false); }}
-                  className="block w-full text-left px-4 py-2 text-sm text-brand-text-primary hover:bg-brand-primary/50"
-                >
-                  Knowledge Base
-                </button>
-                <button
-                  onClick={signOut}
-                  className="block w-full text-left px-4 py-2 text-sm text-brand-text-primary hover:bg-brand-primary/50"
-                >
-                  Sign Out
-                </button>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-brand-surface border border-white/10 rounded-xl shadow-lg py-1 animate-fade-in origin-top-right">
+                    <div className="px-4 py-2 text-sm text-brand-text-secondary border-b border-white/10">
+                      {profile?.full_name || user.email}
+                    </div>
+                    <button
+                      onClick={() => { setPage('profile'); setIsDropdownOpen(false); }}
+                      className="block w-full text-left px-4 py-2 text-sm text-brand-text-primary hover:bg-brand-primary/20"
+                    >
+                      👤 Profile
+                    </button>
+                    <button
+                      onClick={signOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10"
+                    >
+                      🚪 Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-slate-700/50 flex items-center justify-center">
+                <span className="text-lg">👤</span>
               </div>
             )}
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="px-4 pb-2">
+        <div className="flex items-center gap-2 max-w-4xl mx-auto overflow-x-auto">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setPage(item.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${currentPage === item.id
+                  ? 'bg-brand-primary/20 text-brand-primary border border-brand-primary/30'
+                  : 'bg-white/5 text-brand-text-secondary hover:bg-white/10'
+                }`}
+            >
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </header>
   );

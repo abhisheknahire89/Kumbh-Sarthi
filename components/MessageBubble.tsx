@@ -1,161 +1,181 @@
-import React, { useState } from 'react';
-import type { Message, StructuredResponse, ReasoningSummaryCard } from '../types';
-import { UserIcon, BrainCircuitIcon, AlertTriangleIcon, HeartPulseIcon, SparklesIcon, ClipboardListIcon, EyeIcon, EyeOffIcon, CopyIcon, CheckCircleIcon, InfoIcon, HabitIcon } from './icons';
+import React from 'react';
+import type { Message, StructuredResponse, Facility, EmergencyContact } from '../types';
+import { UserIcon } from './icons';
 import { useAuth } from '../contexts/AuthContext';
+import { FACILITY_TYPES } from '../constants';
+import { openNavigation } from '../services/locationService';
 
 interface MessageBubbleProps {
     message: Message;
 }
 
-const ReasoningCardSection: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; }> = ({ title, icon, children }) => (
-    <div className="mt-4">
-        <div className="flex items-center space-x-3 text-brand-text-secondary">
-            {icon}
-            <h3 className="font-semibold text-sm tracking-wide uppercase">{title}</h3>
-        </div>
-        <div className="mt-2 pl-8 text-brand-text-primary text-sm leading-relaxed">
-            {children}
-        </div>
-    </div>
-);
+// Facility Card Component
+const FacilityCard: React.FC<{ facility: Facility }> = ({ facility }) => {
+    const typeConfig = FACILITY_TYPES[facility.type] || { icon: '📍', name: facility.type, color: '#888' };
 
-const ReasoningSummaryCardDisplay: React.FC<{ card: ReasoningSummaryCard }> = ({ card }) => {
-    const [isDetailedView, setIsDetailedView] = useState(false);
-    const [copyStatus, setCopyStatus] = useState<'Copy' | 'Copied!'>('Copy');
-
-    const handleCopy = () => {
-        const summaryText = `
-Veda Visit Summary
---------------------
-
-What to tell the doctor:
-${card.whatToTellTheDoctor}
-
-What this could mean:
-${card.whatThisCouldMean}
-
-Why this is being considered:
-${card.why}
-
-Red Flags to Watch For:
-${card.redFlags.map(f => `- ${f}`).join('\n')}
-
-Safe Self-Care At Home:
-${card.whatYouCanDoAtHome.map(f => `- ${f}`).join('\n')}
-
-Ayurveda & Household Remedies:
-${card.ayurvedaAndHouseholdRemedies.map(f => `- ${f}`).join('\n')}
-
-Small Habits for Recovery:
-${card.smallHabitsForRecovery.map(f => `- ${f}`).join('\n')}
-
-When to see a doctor:
-${card.whenToSeeADoctor}
-        `.trim().replace(/^\s+/gm, '');
-
-        navigator.clipboard.writeText(summaryText);
-        setCopyStatus('Copied!');
-        setTimeout(() => setCopyStatus('Copy'), 2000);
+    const handleNavigate = () => {
+        openNavigation(facility.location, facility.name);
     };
 
     return (
-        <div className="mt-4 border-t border-white/10 pt-4">
-            <div className="flex justify-between items-center mb-4">
-                <button onClick={() => setIsDetailedView(!isDetailedView)} className="flex items-center space-x-1.5 text-xs text-brand-text-secondary hover:text-brand-text-primary transition-colors focus:outline-none">
-                    {isDetailedView ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                    <span>{isDetailedView ? 'Simple View' : 'Detailed View'}</span>
-                </button>
-                <button onClick={handleCopy} className="flex items-center space-x-1.5 text-xs text-brand-text-secondary hover:text-brand-text-primary transition-colors focus:outline-none disabled:opacity-50">
-                    {copyStatus === 'Copied!' ? <CheckCircleIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
-                    <span>{copyStatus} Summary</span>
-                </button>
+        <div className="bg-white/10 rounded-xl p-3 border border-white/10 hover:bg-white/15 transition-all">
+            <div className="flex items-start gap-3">
+                <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                    style={{ backgroundColor: `${typeConfig.color}30` }}
+                >
+                    {typeConfig.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="font-bold text-brand-text-primary text-sm">{facility.name}</div>
+                    <div className="text-xs text-brand-text-secondary">{facility.nameHi}</div>
+                    {facility.description && (
+                        <div className="text-xs text-brand-text-secondary mt-1 line-clamp-2">{facility.description}</div>
+                    )}
+                </div>
             </div>
-            
-            <ReasoningCardSection title="What this could mean" icon={<BrainCircuitIcon className="w-5 h-5 text-brand-accent"/>}>
-                <p>{card.whatThisCouldMean}</p>
-            </ReasoningCardSection>
-
-            {isDetailedView && (
-                <>
-                    <ReasoningCardSection title="Why Veda thinks this" icon={<InfoIcon className="w-5 h-5 text-sky-400"/>}>
-                        <p className="text-sm"><em>{card.why}</em></p>
-                    </ReasoningCardSection>
-
-                    <ReasoningCardSection title="Safe Self-Care" icon={<HeartPulseIcon className="w-5 h-5 text-green-400"/>}>
-                         <ul className="list-disc list-inside space-y-1">
-                            {card.whatYouCanDoAtHome.map((item, i) => <li key={i}>{item}</li>)}
-                        </ul>
-                    </ReasoningCardSection>
-                    
-                    {card.ayurvedaAndHouseholdRemedies.length > 0 && (
-                         <ReasoningCardSection title="Ayurveda & Household Remedies" icon={<SparklesIcon className="w-5 h-5 text-amber-400"/>}>
-                             <ul className="list-disc list-inside space-y-1">
-                                {card.ayurvedaAndHouseholdRemedies.map((item, i) => <li key={i}>{item}</li>)}
-                            </ul>
-                        </ReasoningCardSection>
-                    )}
-                    
-                    {card.smallHabitsForRecovery.length > 0 && (
-                         <ReasoningCardSection title="Small Habits for Recovery" icon={<HabitIcon className="w-5 h-5 text-lime-400"/>}>
-                             <ul className="list-disc list-inside space-y-1">
-                                {card.smallHabitsForRecovery.map((item, i) => <li key={i}>{item}</li>)}
-                            </ul>
-                        </ReasoningCardSection>
-                    )}
-                </>
-            )}
-
-             <ReasoningCardSection title="Red Flags to Watch" icon={<AlertTriangleIcon className="w-5 h-5 text-red-400"/>}>
-                <ul className="list-disc list-inside space-y-1">
-                    {card.redFlags.map((flag, i) => <li key={i}>{flag}</li>)}
-                </ul>
-            </ReasoningCardSection>
-
-            <ReasoningCardSection title="Next Steps" icon={<ClipboardListIcon className="w-5 h-5 text-blue-400"/>}>
-                <p><strong>When to see a doctor:</strong> {card.whenToSeeADoctor}</p>
-                <p className="mt-2"><strong>What to tell the doctor:</strong> {card.whatToTellTheDoctor}</p>
-            </ReasoningCardSection>
+            <button
+                onClick={handleNavigate}
+                className="w-full mt-2 py-2 bg-brand-primary/20 hover:bg-brand-primary/30 text-brand-primary rounded-lg text-xs font-medium transition-all"
+            >
+                🧭 Navigate / मार्गदर्शन
+            </button>
         </div>
     );
+};
+
+// Emergency Contact Card Component
+const EmergencyContactCard: React.FC<{ contact: EmergencyContact }> = ({ contact }) => {
+    const iconMap = {
+        ambulance: '🚑',
+        police: '👮',
+        fire: '🚒',
+        helpdesk: '📞'
+    };
+
+    const handleCall = () => {
+        window.location.href = `tel:${contact.number}`;
+    };
+
+    return (
+        <button
+            onClick={handleCall}
+            className="flex items-center gap-3 bg-red-500/20 border border-red-500/30 rounded-xl p-3 hover:bg-red-500/30 transition-all w-full text-left"
+        >
+            <span className="text-2xl">{iconMap[contact.type] || '📞'}</span>
+            <div className="flex-1">
+                <div className="font-bold text-red-400 text-sm">{contact.name}</div>
+                <div className="text-xs text-red-300">{contact.nameHi}</div>
+            </div>
+            <div className="text-lg font-bold text-red-400">{contact.number}</div>
+        </button>
+    );
+};
+
+// Simple markdown-like rendering for the summary
+const renderText = (text: string) => {
+    // Handle bold text with **
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={index} className="font-bold text-brand-primary">{part.slice(2, -2)}</strong>;
+        }
+        return part;
+    });
 };
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     const { profile } = useAuth();
     const isUser = message.role === 'user';
-    const content = message.content as StructuredResponse;
-    const isRedFlag = typeof message.content === 'object' && message.content !== null && 'summary' in message.content && message.content.summary.startsWith("Based on what you've described");
+
+    // Parse content - could be string or structured response
+    const isStructured = typeof message.content === 'object' && message.content !== null;
+    const content = isStructured ? (message.content as StructuredResponse) : null;
+    const textContent = isStructured ? content!.summary : (message.content as string);
+
+    // Check if this is an emergency-related message
+    const isEmergency = content?.emergencyInfo && content.emergencyInfo.length > 0;
 
     return (
-        <div className={`flex items-start gap-4 message-bubble ${isUser ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex items-start gap-3 message-bubble ${isUser ? 'justify-end' : 'justify-start'}`}>
+            {/* Assistant Avatar */}
             {!isUser && (
-                 <div className="relative p-2 bg-gradient-to-br from-brand-primary to-brand-accent rounded-full flex-shrink-0 shadow-md">
-                    <div className="absolute -inset-1 bg-gradient-to-br from-brand-primary to-brand-accent rounded-full blur opacity-50"></div>
-                    <img src="https://raw.githubusercontent.com/akashmanjunath2505/public/main/favicon.png" alt="VEDA Logo" className="relative w-6 h-6" />
+                <div className="relative p-2 bg-gradient-to-br from-brand-primary to-brand-accent rounded-full flex-shrink-0 shadow-md">
+                    <div className="absolute -inset-1 bg-gradient-to-br from-brand-primary to-brand-accent rounded-full blur opacity-40"></div>
+                    <span className="relative text-xl">🙏</span>
                 </div>
             )}
 
-            <div className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
-                <div className={`relative p-4 rounded-2xl max-w-2xl w-full shadow-lg border backdrop-blur-xl transition-colors ${isUser ? 'bg-brand-primary/50 text-white rounded-br-none border-white/10' : 'text-brand-text-primary rounded-bl-none'} ${isRedFlag ? 'bg-red-900/50 border-red-500/50' : 'bg-brand-surface border-white/10'}`}>
-                    {typeof message.content === 'object' && message.content !== null ? (
-                        <div>
-                            <p className={`whitespace-pre-wrap leading-relaxed ${isRedFlag ? 'font-semibold text-red-100' : ''}`}>{content.summary}</p>
-                            {content.reasoningCard && <ReasoningSummaryCardDisplay card={content.reasoningCard} />}
+            {/* Message Content */}
+            <div className={`flex flex-col gap-2 max-w-2xl ${isUser ? 'items-end' : 'items-start'}`}>
+                <div className={`relative p-4 rounded-2xl shadow-lg border backdrop-blur-xl transition-colors ${isUser
+                        ? 'bg-brand-primary/30 text-white rounded-br-none border-brand-primary/30'
+                        : isEmergency
+                            ? 'bg-red-900/30 border-red-500/30 rounded-bl-none'
+                            : 'bg-brand-surface border-white/10 rounded-bl-none'
+                    }`}
+                >
+                    {/* Main Summary Text */}
+                    <div className="whitespace-pre-wrap leading-relaxed text-brand-text-primary">
+                        {textContent.split('\n').map((line, idx) => (
+                            <p key={idx} className={idx > 0 ? 'mt-2' : ''}>
+                                {renderText(line)}
+                            </p>
+                        ))}
+                    </div>
+
+                    {/* Facilities Grid */}
+                    {content?.facilities && content.facilities.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="text-xs font-bold text-brand-text-secondary mb-2 uppercase tracking-wide">
+                                📍 Nearby Facilities / नज़दीकी सुविधाएं
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {content.facilities.slice(0, 4).map((facility, idx) => (
+                                    <FacilityCard key={idx} facility={facility} />
+                                ))}
+                            </div>
                         </div>
-                    ) : (
-                        <p className="whitespace-pre-wrap leading-relaxed">{message.content as string}</p>
+                    )}
+
+                    {/* Emergency Contacts */}
+                    {content?.emergencyInfo && content.emergencyInfo.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-red-500/30">
+                            <div className="text-xs font-bold text-red-400 mb-2 uppercase tracking-wide">
+                                🆘 Emergency Contacts / आपातकालीन संपर्क
+                            </div>
+                            <div className="space-y-2">
+                                {content.emergencyInfo.map((contact, idx) => (
+                                    <EmergencyContactCard key={idx} contact={contact} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Directions */}
+                    {content?.directions && (
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="text-xs font-bold text-brand-text-secondary mb-2 uppercase tracking-wide">
+                                🧭 Directions / दिशा-निर्देश
+                            </div>
+                            <div className="bg-white/5 rounded-lg p-3 text-sm text-brand-text-primary">
+                                {content.directions}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
 
-             {isUser && (
+            {/* User Avatar */}
+            {isUser && (
                 <div className="p-0.5 bg-slate-700 rounded-full flex-shrink-0">
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
-                        <UserIcon className="w-5 h-5 text-brand-text-secondary" />
-                    </div>
-                  )}
+                    {profile?.avatar_url ? (
+                        <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                            <UserIcon className="w-5 h-5 text-brand-text-secondary" />
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, Type } from '@google/genai';
 import { Waveform } from './Waveform';
-import { VedaThinkingIcon, SettingsIcon, MicrophoneIcon } from './icons';
+import { KumbhSarthiIcon, SettingsIcon, MicrophoneIcon } from './icons';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
-import { searchKnowledgeBase } from '../services/ragService';
+import { APP_NAME, APP_NAME_HINDI, KUMBH_CENTER, SHAHI_SNAN_DATES, EMERGENCY_CONTACTS, SUPPORTED_LANGUAGES } from '../constants';
+import { getAllFacilities, getCurrentLocation, formatDistance, getNearestFacility } from '../services/locationService';
+import { detectEmergencyKeywords, getEmergencyNumbersText, triggerEmergencyCall } from '../services/emergencyService';
+import type { Coordinates, Facility } from '../types';
 
 interface AssistantInterfaceProps {
     onClose: () => void;
@@ -11,8 +14,6 @@ interface AssistantInterfaceProps {
 }
 
 type AssistantStatus = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
-
-const GREETING_URL = 'https://raw.githubusercontent.com/akashmanjunath2505/public/main/veda-greeting.wav';
 
 const VOICES = [
     { name: 'Kore', gender: 'Female', description: 'Calm, soothing, empathetic.' },
@@ -28,6 +29,8 @@ export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose,
     const [showSettings, setShowSettings] = useState(false);
     const [selectedVoice, setSelectedVoice] = useState('Kore');
     const [naturalMode, setNaturalMode] = useState(true);
+    const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+    const [emergencyDetected, setEmergencyDetected] = useState(false);
 
     const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -43,25 +46,51 @@ export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose,
     const currentInputTranscriptionRef = useRef('');
     const currentOutputTranscriptionRef = useRef('');
     const cleanedUpRef = useRef(false);
+    const initIdRef = useRef(0); // Track initialization attempts to handle StrictMode
 
     const vadTimeoutIdRef = useRef<number | null>(null);
     const userSpeakingRef = useRef(false);
     const isGreetingRef = useRef(true);
 
+    // Get user location on mount
+    useEffect(() => {
+        getCurrentLocation()
+            .then(setUserLocation)
+            .catch(err => console.log('Location not available:', err.message));
+    }, []);
+
     const cleanup = () => {
-        if (cleanedUpRef.current) return;
+        // Increment init ID to invalidate any in-progress initialization
+        initIdRef.current++;
         cleanedUpRef.current = true;
+
         if (vadTimeoutIdRef.current) window.clearTimeout(vadTimeoutIdRef.current);
         if (sessionPromiseRef.current) {
             sessionPromiseRef.current.then(session => session.close()).catch(e => console.error(e));
+            sessionPromiseRef.current = null;
         }
-        for (const source of sourcesRef.current) { try { source.stop(); } catch (e) {} }
+        for (const source of sourcesRef.current) { try { source.stop(); } catch (e) { } }
         sourcesRef.current.clear();
         scriptProcessorRef.current?.disconnect();
+        scriptProcessorRef.current = null;
         mediaStreamSourceRef.current?.disconnect();
+        mediaStreamSourceRef.current = null;
         mediaStreamRef.current?.getTracks().forEach(track => track.stop());
-        if (inputAudioContextRef.current?.state !== 'closed') inputAudioContextRef.current?.close();
-        if (outputAudioContextRef.current?.state !== 'closed') outputAudioContextRef.current?.close();
+        mediaStreamRef.current = null;
+
+        // Close audio contexts
+        if (inputAudioContextRef.current?.state !== 'closed') {
+            inputAudioContextRef.current?.close();
+        }
+        inputAudioContextRef.current = null;
+
+        if (outputAudioContextRef.current?.state !== 'closed') {
+            outputAudioContextRef.current?.close();
+        }
+        outputAudioContextRef.current = null;
+        outputGainNodeRef.current = null;
+        inputAnalyserNodeRef.current = null;
+        outputAnalyserNodeRef.current = null;
     };
 
     const handleClose = () => {
@@ -71,32 +100,92 @@ export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose,
     };
 
     const initialize = async (skipGreeting: boolean = false) => {
+        // Capture current init ID to detect if cleanup happens during async operations
+        const currentInitId = ++initIdRef.current;
         cleanedUpRef.current = false;
         isGreetingRef.current = !skipGreeting;
         setStatus(skipGreeting ? 'listening' : 'connecting');
 
-        if (!process.env.API_KEY) {
+        // Helper to check if this initialization is still valid
+        const isStale = () => currentInitId !== initIdRef.current || cleanedUpRef.current;
+
+        // Get API key from Vite environment variables or fallback to process.env
+        const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+            (typeof process !== 'undefined' && process.env?.API_KEY);
+
+        if (!apiKey) {
+            console.error('Gemini API Key not configured. Voice assistant requires VITE_GEMINI_API_KEY.');
             setStatus('error');
+            // Show a meaningful message instead of just "error"
+            setTranscriptHistory([{
+                role: 'assistant',
+                content: '🙏 Voice assistant requires a Gemini API key. Please configure VITE_GEMINI_API_KEY in your .env file.'
+            }]);
             return;
         }
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            
-            // ONE-TIME PRE-LOAD: We fetch the most relevant patient records before starting the session.
-            // This ensures Veda already "knows" everything without needing to stop and "think" during the talk.
-            const records = await searchKnowledgeBase("comprehensive patient medical history summary results diagnosis");
-            const patientBriefing = records.length > 0 
-                ? `YOU HAVE BEEN BRIEFED ON THE FOLLOWING PATIENT RECORDS. DO NOT ASK TO SEE THEM, YOU ALREADY HAVE THEM:\n${records.join('\n---\n')}` 
-                : "The patient has not uploaded any records yet.";
+            const ai = new GoogleGenAI({ apiKey });
 
+            // Build Kumbh Mela context
+            const facilities = getAllFacilities();
+            const ghats = facilities.filter(f => f.type === 'ghat');
+            const temples = facilities.filter(f => f.type === 'temple');
+
+            const kumbhContext = `
+KUMBH MELA NASHIK 2026 INFORMATION:
+
+KEY GHATS (स्नान घाट):
+${ghats.map(g => `- ${g.name} (${g.nameHi}): ${g.description}`).join('\n')}
+
+IMPORTANT TEMPLES (मंदिर):
+${temples.map(t => `- ${t.name} (${t.nameHi}): ${t.description}`).join('\n')}
+
+SHAHI SNAN DATES (शाही स्नान तिथियां):
+${SHAHI_SNAN_DATES.map(s => `- ${s.date}: ${s.name} (${s.nameHi})`).join('\n')}
+
+EMERGENCY CONTACTS (आपातकालीन संपर्क):
+${EMERGENCY_CONTACTS.map(e => `- ${e.name}: ${e.number}`).join('\n')}
+
+USER'S CURRENT LOCATION: ${userLocation ?
+                    `Near Ramkund (${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})` :
+                    'Location not available'}
+`;
+
+            // Create input audio context for microphone
             const iac = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             inputAudioContextRef.current = iac;
+
+            // Resume input context if suspended (required by browser autoplay policy)
+            if (iac.state === 'suspended') {
+                await iac.resume();
+            }
+
+            // Check if we got cleaned up during the async resume
+            if (isStale()) {
+                console.log('Initialization aborted - component was cleaned up');
+                return;
+            }
+
             inputAnalyserNodeRef.current = iac.createAnalyser();
 
+            // Create output audio context for voice playback
             const oac = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             outputAudioContextRef.current = oac;
+
+            // Resume output context if suspended (CRITICAL for voice playback!)
+            if (oac.state === 'suspended') {
+                await oac.resume();
+            }
+
+            // Check if we got cleaned up during the async resume
+            if (isStale()) {
+                console.log('Initialization aborted - component was cleaned up');
+                return;
+            }
+
             const oGain = oac.createGain();
+            oGain.gain.value = 1.0; // Ensure full volume
             const oAnalyser = oac.createAnalyser();
             oGain.connect(oAnalyser);
             oAnalyser.connect(oac.destination);
@@ -104,61 +193,76 @@ export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose,
             outputAnalyserNodeRef.current = oAnalyser;
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Check if we got cleaned up during getUserMedia
+            if (isStale()) {
+                console.log('Initialization aborted - component was cleaned up');
+                stream.getTracks().forEach(track => track.stop());
+                return;
+            }
+
             mediaStreamRef.current = stream;
 
             if (!skipGreeting) {
-                 try {
-                    let audioBuffer: AudioBuffer | null = null;
-                    if (GREETING_URL && selectedVoice === 'Kore') {
-                        const response = await fetch(GREETING_URL);
-                        if (response.ok) {
-                            const arrayBuffer = await response.arrayBuffer();
-                            audioBuffer = await oac.decodeAudioData(arrayBuffer);
-                            setStatus('speaking');
-                        }
-                    }
-                    if (audioBuffer && !cleanedUpRef.current) {
-                        const source = oac.createBufferSource();
-                        source.buffer = audioBuffer;
-                        source.connect(outputGainNodeRef.current!);
-                        source.addEventListener('ended', () => {
-                            isGreetingRef.current = false;
-                            if (!cleanedUpRef.current) setStatus('listening');
-                        });
-                        source.start();
-                    } else {
-                        isGreetingRef.current = false;
-                        if (!cleanedUpRef.current) setStatus('listening');
-                    }
-                } catch (error) {
-                    isGreetingRef.current = false;
-                    if (!cleanedUpRef.current) setStatus('listening');
-                }
+                // No pre-recorded greeting, start listening immediately
+                isGreetingRef.current = false;
+                if (!isStale()) setStatus('listening');
             }
 
-            let systemPrompt = `You are Dr. Veda, a gentle and patient-focused health guide.
+            const systemPrompt = `You are ${APP_NAME} (${APP_NAME_HINDI}), a warm and helpful spiritual guide for devotees at Kumbh Mela Nashik 2026.
 
 CRITICAL INSTRUCTIONS:
-1. MULTILINGUAL SUPPORT: You MUST respond in the EXACT SAME LANGUAGE as the patient. If they speak Hindi, answer in Hindi. If they speak Spanish, answer in Spanish.
-2. PATIENT CONTEXT: You already possess the patient's records. Do not mention that you are "searching" or "looking them up." Just speak from knowledge.
-${patientBriefing}
+
+1. MULTILINGUAL SUPPORT: You MUST respond in the EXACT SAME LANGUAGE as the devotee. If they speak Hindi, answer in Hindi. If Marathi, answer in Marathi. If Gujarati, Gujarati. Match their language perfectly.
+
+2. SPIRITUAL CONTEXT: You are serving millions of devotees at one of the holiest Hindu pilgrimages. Speak with respect, warmth, and spiritual awareness. Use appropriate greetings like "Har Har Mahadev", "Jai Shri Ram", etc.
+
+3. EMERGENCY DETECTION: If the devotee mentions ANY emergency (medical, lost person, theft, fire), IMMEDIATELY provide the relevant emergency number and ask if they need you to help them call.
+
+4. FACILITY ASSISTANCE: Help devotees find:
+   - Nearest toilets, water points, food stalls
+   - Medical aid and first aid centers
+   - Lost & Found centers
+   - Parking areas
+   - Important ghats for snan (ritual bathing)
+
+5. SPIRITUAL GUIDANCE: Answer questions about:
+   - Shahi Snan dates and their significance
+   - Temple locations and darshan timings
+   - Rituals and puja procedures
+   - Historical significance of Nashik Kumbh
+
+${kumbhContext}
 
 CONVERSATION STYLE:
-- Speak directly to the patient's concerns. Use zero medical jargon.
-- If they ask "what's wrong?", use the briefing above to explain their status simply and with deep empathy.
-- Your goal is to make them feel heard and calm.`;
+- Be concise but warm
+- If giving directions, be specific with landmarks
+- Always ask if they need more help
+- For emergencies, be calm but act quickly
+- Speak like a caring local guide, not a robot`;
 
             sessionPromiseRef.current = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                 callbacks: {
-                    onopen: () => {
+                    onopen: async () => {
+                        // Ensure output audio context is resumed for playback
+                        if (oac.state === 'suspended') {
+                            await oac.resume();
+                        }
+
+                        // Check if initialization was cancelled or contexts closed
+                        if (isStale() || iac.state === 'closed') {
+                            console.log('Skipping audio setup - initialization was cancelled');
+                            return;
+                        }
+
                         const source = iac.createMediaStreamSource(stream);
                         mediaStreamSourceRef.current = source;
                         const scriptProcessor = iac.createScriptProcessor(4096, 1, 1);
                         scriptProcessorRef.current = scriptProcessor;
 
                         scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
-                            if (isGreetingRef.current || cleanedUpRef.current) return;
+                            if (isGreetingRef.current || isStale()) return;
                             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                             let sum = 0.0;
                             for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i];
@@ -170,9 +274,9 @@ CONVERSATION STYLE:
                                 if (!vadTimeoutIdRef.current) {
                                     vadTimeoutIdRef.current = window.setTimeout(() => {
                                         setStatus('thinking');
-                                        userSpeakingRef.current = false; 
+                                        userSpeakingRef.current = false;
                                         vadTimeoutIdRef.current = null;
-                                    }, 600); 
+                                    }, 600);
                                 }
                             }
                             const l = inputData.length;
@@ -181,19 +285,28 @@ CONVERSATION STYLE:
                             const pcmBlob: Blob = { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
                             sessionPromiseRef.current?.then((session) => {
                                 session.sendRealtimeInput({ media: pcmBlob });
-                            }).catch(() => {});
+                            }).catch(() => { });
                         };
                         source.connect(inputAnalyserNodeRef.current!);
                         source.connect(scriptProcessor);
                         scriptProcessor.connect(iac.destination);
                     },
                     onmessage: async (message: LiveServerMessage) => {
-                        if (cleanedUpRef.current) return;
+                        if (isStale()) return;
 
+                        // Handle transcriptions
                         if (message.serverContent?.outputTranscription) {
                             currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
                         } else if (message.serverContent?.inputTranscription) {
-                            currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
+                            const inputText = message.serverContent.inputTranscription.text;
+                            currentInputTranscriptionRef.current += inputText;
+
+                            // Check for emergency keywords
+                            const { isEmergency, type } = detectEmergencyKeywords(inputText);
+                            if (isEmergency) {
+                                setEmergencyDetected(true);
+                                setTimeout(() => setEmergencyDetected(false), 5000);
+                            }
                         }
 
                         if (message.serverContent?.turnComplete) {
@@ -207,6 +320,15 @@ CONVERSATION STYLE:
 
                         const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
                         if (base64Audio) {
+                            // Ensure output context is still valid and resumed for playback
+                            if (oac.state === 'closed') {
+                                console.warn('Output AudioContext closed, cannot play audio');
+                                return;
+                            }
+                            if (oac.state === 'suspended') {
+                                await oac.resume();
+                            }
+
                             setStatus('speaking');
                             const audioBuffer = await decodeAudioData(decode(base64Audio), oac, 24000, 1);
                             nextStartTimeRef.current = Math.max(nextStartTimeRef.current, oac.currentTime);
@@ -215,7 +337,7 @@ CONVERSATION STYLE:
                             source.connect(outputGainNodeRef.current!);
                             source.addEventListener('ended', () => {
                                 sourcesRef.current.delete(source);
-                                if(sourcesRef.current.size === 0 && !isGreetingRef.current && !cleanedUpRef.current) setStatus('listening');
+                                if (sourcesRef.current.size === 0 && !isGreetingRef.current && !isStale()) setStatus('listening');
                             });
                             source.start(nextStartTimeRef.current);
                             nextStartTimeRef.current += audioBuffer.duration;
@@ -223,9 +345,9 @@ CONVERSATION STYLE:
                         }
 
                         if (message.serverContent?.interrupted) {
-                            for (const source of sourcesRef.current.values()) { try { source.stop(); } catch(e) {} sourcesRef.current.delete(source); }
+                            for (const source of sourcesRef.current.values()) { try { source.stop(); } catch (e) { } sourcesRef.current.delete(source); }
                             nextStartTimeRef.current = 0;
-                            if (!cleanedUpRef.current) setStatus('listening');
+                            if (!isStale()) setStatus('listening');
                         }
                     },
                     onerror: (e) => { setStatus('error'); },
@@ -240,7 +362,7 @@ CONVERSATION STYLE:
             });
         } catch (err) { setStatus('error'); }
     };
-        
+
     useEffect(() => {
         initialize();
         return () => cleanup();
@@ -248,8 +370,10 @@ CONVERSATION STYLE:
 
     const handleApplySettings = () => { cleanup(); setShowSettings(false); setTimeout(() => initialize(true), 200); };
 
-    // During 'thinking', we show the input analyser so the waveform doesn't vanish, 
-    // but the actual audio processing is handled by Gemini.
+    const handleEmergencyCall = () => {
+        triggerEmergencyCall('ambulance');
+    };
+
     const activeAnalyser = (status === 'speaking') ? outputAnalyserNodeRef.current : inputAnalyserNodeRef.current;
 
     return (
@@ -263,7 +387,7 @@ CONVERSATION STYLE:
                 <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
                     <div className="w-full max-w-md bg-brand-bg border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold">Veda Settings</h2>
+                            <h2 className="text-xl font-bold">{APP_NAME} Settings</h2>
                             <button onClick={() => setShowSettings(false)} className="p-2">&times;</button>
                         </div>
                         <div className="space-y-4">
@@ -289,16 +413,33 @@ CONVERSATION STYLE:
 
             <div className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center z-40">
                 <div className="flex items-center gap-4">
-                    <img src="https://raw.githubusercontent.com/akashmanjunath2505/public/main/favicon.png" className="w-8 h-8" alt="Veda" />
-                    <div className="text-sm font-bold">DR. VEDA LIVE</div>
+                    <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center text-xl">🙏</div>
+                    <div>
+                        <div className="text-sm font-bold">{APP_NAME.toUpperCase()} LIVE</div>
+                        <div className="text-xs text-brand-text-secondary">{APP_NAME_HINDI}</div>
+                    </div>
                 </div>
                 <button onClick={() => setShowSettings(true)} className="p-3 bg-white/5 rounded-2xl transition-transform active:scale-95"><SettingsIcon className="w-5 h-5" /></button>
             </div>
 
+            {/* Emergency Alert Banner */}
+            {emergencyDetected && (
+                <div className="absolute top-24 left-4 right-4 bg-red-500/20 border border-red-500/50 rounded-2xl p-4 z-40 animate-pulse">
+                    <div className="flex items-center justify-between">
+                        <span className="text-red-400 font-bold">🆘 Emergency Detected</span>
+                        <button onClick={handleEmergencyCall} className="px-4 py-2 bg-red-500 text-white rounded-xl font-bold text-sm">
+                            Call 108
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="relative flex flex-col items-center justify-center flex-1 w-full max-w-lg px-8">
                 <div className="relative w-[340px] h-[340px] flex items-center justify-center">
                     {status === 'connecting' ? (
-                       <VedaThinkingIcon className="w-24 h-24 text-brand-primary animate-pulse" />
+                        <div className="w-24 h-24 text-brand-primary animate-pulse text-6xl">🙏</div>
+                    ) : status === 'error' ? (
+                        <div className="w-24 h-24 text-red-400 text-6xl">⚠️</div>
                     ) : (
                         <Waveform analyserNode={activeAnalyser} width={340} height={340} />
                     )}
@@ -306,19 +447,30 @@ CONVERSATION STYLE:
 
                 <div className="mt-12 text-center space-y-4 animate-slide-up">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-surface/50 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                        <div className={`w-2 h-2 rounded-full ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-brand-primary' : 'bg-amber-400'}`}></div>
-                        {status === 'listening' ? "Tell me about your concern" : status === 'speaking' ? "Veda is speaking" : status === 'thinking' ? "Veda is listening" : "Connecting"}
+                        <div className={`w-2 h-2 rounded-full ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-brand-primary' : status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`}></div>
+                        {status === 'listening' ? "Tell me your concern" : status === 'speaking' ? "Kumbh Sarthi is speaking" : status === 'thinking' ? "Listening..." : status === 'error' ? "API Key Required" : "Connecting"}
                     </div>
                     <h2 className="text-2xl font-medium tracking-tight h-16 flex items-center justify-center">
-                        {status === 'listening' ? "Tell me about your concern." : 
-                         status === 'speaking' ? "I've reviewed your records. Let's talk." :
-                         status === 'thinking' ? "..." : ""}
+                        {status === 'listening' ? "कैसे सहायता करूं? How can I help?" :
+                            status === 'speaking' ? "🙏 हर हर महादेव" :
+                                status === 'thinking' ? "..." :
+                                    status === 'error' ? "Voice assistant unavailable" : "जय श्री राम 🙏"}
                     </h2>
+                    {status === 'error' && (
+                        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-300 max-w-xs">
+                            <p className="font-bold mb-2">🔑 API Key Missing</p>
+                            <p>Create a <code className="bg-black/30 px-1 rounded">.env</code> file and add:</p>
+                            <code className="block mt-2 bg-black/30 p-2 rounded text-xs break-all">
+                                VITE_GEMINI_API_KEY=your_key
+                            </code>
+                            <p className="mt-2 text-xs opacity-70">Use the text chat instead!</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <div className="p-12 w-full flex justify-center z-40">
-                <button onClick={handleClose} className="px-8 py-4 bg-red-500/10 text-red-400 rounded-3xl border border-red-500/20 font-bold uppercase tracking-widest text-sm hover:bg-red-500/20 transition-all">End Consultation</button>
+                <button onClick={handleClose} className="px-8 py-4 bg-red-500/10 text-red-400 rounded-3xl border border-red-500/20 font-bold uppercase tracking-widest text-sm hover:bg-red-500/20 transition-all">End Session</button>
             </div>
         </div>
     );
