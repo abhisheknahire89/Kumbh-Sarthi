@@ -23,7 +23,10 @@ const VOICES = [
     { name: 'Zephyr', gender: 'Female', description: 'Bright, friendly, warm.' },
 ];
 
+import { useTranslation } from 'react-i18next';
+
 export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose, onSessionEnd }) => {
+    const { t } = useTranslation();
     const [status, setStatus] = useState<AssistantStatus>('connecting');
     const [transcriptHistory, setTranscriptHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
     const [showSettings, setShowSettings] = useState(false);
@@ -432,7 +435,7 @@ CONVERSATION STYLE:
                 <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
                     <div className="w-full max-w-md bg-brand-bg border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold">{APP_NAME} Settings</h2>
+                            <h2 className="text-xl font-bold">{t('app_name')} {t('common.settings')}</h2>
                             <button onClick={() => setShowSettings(false)} className="p-2">&times;</button>
                         </div>
                         <div className="space-y-4">
@@ -493,13 +496,13 @@ CONVERSATION STYLE:
                 <div className="mt-12 text-center space-y-4 animate-slide-up">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-surface/50 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest">
                         <div className={`w-2 h-2 rounded-full ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-brand-primary' : status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`}></div>
-                        {status === 'listening' ? "Tell me your concern" : status === 'speaking' ? "Kumbh Sarthi is speaking" : status === 'thinking' ? "Listening..." : status === 'error' ? "API Key Required" : "Connecting"}
+                        {status === 'listening' ? t('assistant.tell_concern') : status === 'speaking' ? t('assistant.speaking') : status === 'thinking' ? t('assistant.thinking') : status === 'error' ? t('assistant.error') : "Connecting..."}
                     </div>
                     <h2 className="text-2xl font-medium tracking-tight h-16 flex items-center justify-center">
-                        {status === 'listening' ? "कैसे सहायता करूं? How can I help?" :
-                            status === 'speaking' ? "🙏 हर हर महादेव" :
+                        {status === 'listening' ? t('assistant.help_prompt') :
+                            status === 'speaking' ? "🙏 " + t('assistant.greeting') :
                                 status === 'thinking' ? "..." :
-                                    status === 'error' ? "Voice assistant unavailable" : "जय श्री राम 🙏"}
+                                    status === 'error' ? t('assistant.error') : "🙏"}
                     </h2>
                     {status === 'error' && (
                         <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-300 max-w-xs">
@@ -515,7 +518,7 @@ CONVERSATION STYLE:
             </div>
 
             <div className="p-12 w-full flex justify-center z-40">
-                <button onClick={handleClose} className="px-8 py-4 bg-red-500/10 text-red-400 rounded-3xl border border-red-500/20 font-bold uppercase tracking-widest text-sm hover:bg-red-500/20 transition-all">End Session</button>
+                <button onClick={handleClose} className="px-8 py-4 bg-red-500/10 text-red-400 rounded-3xl border border-red-500/20 font-bold uppercase tracking-widest text-sm hover:bg-red-500/20 transition-all">{t('action.end_session')}</button>
             </div>
         </div>
     );

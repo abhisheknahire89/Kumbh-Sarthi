@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FACILITY_TYPES } from '../constants';
 import { getNearbyFacilities, formatDistance, openNavigation } from '../services/locationService';
 import type { Coordinates, Facility, FacilityType } from '../types';
@@ -14,6 +15,7 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
     onFacilitySelect,
     onShowMap
 }) => {
+    const { t } = useTranslation();
     const [selectedType, setSelectedType] = useState<FacilityType | null>(null);
     const [facilities, setFacilities] = useState<Facility[]>([]);
     const [loading, setLoading] = useState(false);
@@ -44,8 +46,7 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
         <div className="flex flex-col h-full">
             {/* Header */}
             <div className="px-4 py-4 border-b border-white/10">
-                <h2 className="text-xl font-bold text-brand-text-primary">Nearby Facilities</h2>
-                <p className="text-sm text-brand-text-secondary">नज़दीकी सुविधाएं</p>
+                <h2 className="text-xl font-bold text-brand-text-primary">{t('nav.facilities')}</h2>
             </div>
 
             {/* Facility Type Grid */}
@@ -56,13 +57,12 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
                             key={type}
                             onClick={() => handleTypeSelect(type as FacilityType)}
                             className={`p-4 rounded-2xl text-center transition-all active:scale-95 ${selectedType === type
-                                    ? 'bg-brand-primary/20 border-brand-primary border-2'
-                                    : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                                ? 'bg-brand-primary/20 border-brand-primary border-2'
+                                : 'bg-white/5 border border-white/10 hover:bg-white/10'
                                 }`}
                         >
                             <div className="text-3xl mb-2">{config.icon}</div>
-                            <div className="text-xs font-medium text-brand-text-primary">{config.name}</div>
-                            <div className="text-[10px] text-brand-text-secondary">{config.nameHi}</div>
+                            <div className="text-xs font-medium text-brand-text-primary">{t(`facilities.${type}`)}</div>
                         </button>
                     ))}
                 </div>
@@ -74,7 +74,7 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
                     <div className="flex items-center gap-2">
                         <span className="text-2xl">{FACILITY_TYPES[selectedType].icon}</span>
                         <span className="font-bold text-brand-text-primary">
-                            {FACILITY_TYPES[selectedType].name}
+                            {t(`facilities.${selectedType}`)}
                         </span>
                     </div>
                     {onShowMap && (
@@ -82,7 +82,7 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
                             onClick={() => onShowMap(selectedType)}
                             className="text-xs px-3 py-1 bg-brand-primary/20 text-brand-primary rounded-full"
                         >
-                            View on Map 🗺️
+                            {t('facilities.view_map')} 🗺️
                         </button>
                     )}
                 </div>
@@ -92,24 +92,22 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
             <div className="flex-1 overflow-y-auto px-4 pb-4">
                 {loading ? (
                     <div className="text-center py-8 text-brand-text-secondary">
-                        Loading...
+                        {t('common.loading')}
                     </div>
                 ) : !selectedType ? (
                     <div className="text-center py-8 text-brand-text-secondary">
                         <div className="text-4xl mb-2">👆</div>
-                        <p>Select a category above</p>
-                        <p className="text-xs">ऊपर एक श्रेणी चुनें</p>
+                        <p>{t('facilities.select_category')}</p>
                     </div>
                 ) : !userLocation ? (
                     <div className="text-center py-8 text-amber-400">
                         <div className="text-4xl mb-2">📍</div>
-                        <p>Enable location to see distances</p>
-                        <p className="text-xs">दूरी देखने के लिए स्थान सक्षम करें</p>
+                        <p>{t('facilities.enable_location')}</p>
                     </div>
                 ) : facilities.length === 0 ? (
                     <div className="text-center py-8 text-brand-text-secondary">
                         <div className="text-4xl mb-2">🔍</div>
-                        <p>No {FACILITY_TYPES[selectedType].name} nearby</p>
+                        <p>{t('facilities.no_results', { type: t(`facilities.${selectedType}`) })}</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -141,14 +139,14 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
                                         onClick={() => handleNavigate(facility)}
                                         className="flex-1 py-2 bg-brand-primary text-white rounded-xl text-sm font-medium hover:bg-brand-secondary transition-all"
                                     >
-                                        🧭 Navigate
+                                        🧭 {t('facilities.navigate')}
                                     </button>
                                     {onFacilitySelect && (
                                         <button
                                             onClick={() => onFacilitySelect(facility)}
                                             className="py-2 px-4 bg-white/10 text-brand-text-primary rounded-xl text-sm hover:bg-white/20 transition-all"
                                         >
-                                            📍 Map
+                                            📍 {t('nav.map')}
                                         </button>
                                     )}
                                 </div>
@@ -163,7 +161,7 @@ export const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({
                 <div className="p-4 border-t border-white/10 bg-brand-surface/50">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-brand-text-secondary">
-                            {facilities.length} {FACILITY_TYPES[selectedType].name} found
+                            {facilities.length} {t(`facilities.${selectedType}`)} found
                         </span>
                         {facilities[0]?.distance !== undefined && (
                             <span className="text-brand-primary font-medium">

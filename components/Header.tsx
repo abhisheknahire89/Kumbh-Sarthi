@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { UserIcon, MapIcon, HomeIcon, AlertIcon } from './icons';
 import { APP_NAME, APP_NAME_HINDI } from '../constants';
+import { LanguageSelector } from './LanguageSelector';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   setPage: (page: 'chat' | 'profile' | 'map' | 'facilities' | 'emergency') => void;
@@ -10,6 +12,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ setPage, currentPage = 'chat' }) => {
+  const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -27,9 +30,9 @@ export const Header: React.FC<HeaderProps> = ({ setPage, currentPage = 'chat' })
   }, []);
 
   const navItems = [
-    { id: 'chat', label: 'Chat', labelHi: 'चैट', icon: '💬' },
-    { id: 'map', label: 'Map', labelHi: 'नक्शा', icon: '🗺️' },
-    { id: 'facilities', label: 'Facilities', labelHi: 'सुविधाएं', icon: '🔍' },
+    { id: 'chat', label: t('nav.chat'), icon: '💬' },
+    { id: 'map', label: t('nav.map'), icon: '🗺️' },
+    { id: 'facilities', label: t('nav.facilities'), icon: '🔍' },
   ];
 
   return (
@@ -43,18 +46,21 @@ export const Header: React.FC<HeaderProps> = ({ setPage, currentPage = 'chat' })
               <span className="relative text-xl">🙏</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-brand-text-primary tracking-wide uppercase">{APP_NAME}</h1>
+              <h1 className="text-lg font-bold text-brand-text-primary tracking-wide uppercase">{t('app_name')}</h1>
               <p className="text-[10px] text-brand-text-secondary font-medium tracking-tight">{APP_NAME_HINDI} • कुंभ मेला नाशिक 2026</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Language Selector */}
+            <LanguageSelector />
+
             {/* Emergency SOS Button */}
             <button
               onClick={() => setPage('emergency')}
               className="px-3 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all emergency-pulse"
             >
-              🆘 SOS
+              🆘 {t('emergency_sos')}
             </button>
 
             {/* User Menu */}
@@ -106,8 +112,8 @@ export const Header: React.FC<HeaderProps> = ({ setPage, currentPage = 'chat' })
               key={item.id}
               onClick={() => setPage(item.id as any)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${currentPage === item.id
-                  ? 'bg-brand-primary/20 text-brand-primary border border-brand-primary/30'
-                  : 'bg-white/5 text-brand-text-secondary hover:bg-white/10'
+                ? 'bg-brand-primary/20 text-brand-primary border border-brand-primary/30'
+                : 'bg-white/5 text-brand-text-secondary hover:bg-white/10'
                 }`}
             >
               <span>{item.icon}</span>

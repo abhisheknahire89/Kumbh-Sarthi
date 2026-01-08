@@ -1,0 +1,61 @@
+{
+    "app_name": "Kumbh Sarthi",
+    "subtitle": "Your Guide for Kumbh Mela Nashik 2026",
+    "emergency_sos": "SOS",
+    "nav": {
+        "chat": "Chat",
+        "map": "Map",
+        "facilities": "Facilities",
+        "profile": "Profile"
+    },
+    "assistant": {
+        "listening": "Listening...",
+        "speaking": "Kumbh Sarthi is Speaking...",
+        "thinking": "Thinking...",
+        "error": "Connection Error",
+        "tell_concern": "Tell me your concern",
+        "greeting": "Namaste! I am Kumbh Sarthi.",
+        "intro": "I am Kumbh Sarthi, your AI assistant for Kumbh Mela Nashik 2026.",
+        "help_prompt": "I can help you with:",
+        "ask_placeholder": "Ask anything...",
+        "features": {
+            "ghats": "Finding ghats, temples & religious sites",
+            "facilities": "Locating toilets, water & food facilities",
+            "emergency": "Emergency assistance (ambulance, police)",
+            "shahi_snan": "Shahi Snan dates & timings",
+            "navigation": "Navigation to nearby places"
+        }
+    },
+    "facilities": {
+        "toilet": "Toilet",
+        "water": "Water",
+        "medical": "Medical",
+        "ghat": "Ghat",
+        "food": "Food",
+        "parking": "Parking",
+        "police": "Police",
+        "lost_found": "Lost & Found",
+        "lostfound": "Lost & Found",
+        "temple": "Temple",
+        "helpdesk": "Help Desk",
+        "select_category": "Select a category above",
+        "no_results": "No {{type}} nearby",
+        "enable_location": "Enable location to see distances",
+        "view_map": "View on Map",
+        "navigate": "Navigate"
+    },
+    "action": {
+        "open_maps": "Open Maps",
+        "call": "Call",
+        "directions": "Directions",
+        "end_session": "End Session",
+        "view_map": "View on Map",
+        "navigate": "Navigate"
+    },
+    "common": {
+        "language": "Language",
+        "settings": "Settings",
+        "close": "Close",
+        "loading": "Loading..."
+    }
+}
