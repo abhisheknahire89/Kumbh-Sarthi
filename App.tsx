@@ -6,6 +6,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { MapView } from './components/MapView';
 import { FacilitiesPanel } from './components/FacilitiesPanel';
 import { EmergencyPanel } from './components/EmergencyPanel';
+import { LostAndFound } from './components/LostAndFound';
 import { useAuth } from './contexts/AuthContext';
 import { SpinnerIcon } from './components/icons';
 import { getCurrentLocation } from './services/locationService';
@@ -13,7 +14,7 @@ import type { Coordinates, FacilityType } from './types';
 
 function App() {
   const { session, loading } = useAuth();
-  const [page, setPage] = useState<'chat' | 'profile' | 'map' | 'facilities' | 'emergency'>('chat');
+  const [page, setPage] = useState<'chat' | 'profile' | 'map' | 'facilities' | 'emergency' | 'lostfound'>('chat');
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [selectedFacilityType, setSelectedFacilityType] = useState<FacilityType | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -84,6 +85,12 @@ function App() {
               userLocation={userLocation}
               onClose={() => setPage('chat')}
             />
+          </div>
+        )}
+
+        {page === 'lostfound' && (
+          <div className="flex-1 p-4">
+            <LostAndFound />
           </div>
         )}
       </main>

@@ -7,7 +7,7 @@ import { LanguageSelector } from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
-  setPage: (page: 'chat' | 'profile' | 'map' | 'facilities' | 'emergency') => void;
+  setPage: (page: 'chat' | 'profile' | 'map' | 'facilities' | 'emergency' | 'lostfound') => void;
   currentPage?: string;
 }
 
@@ -33,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ setPage, currentPage = 'chat' })
     { id: 'chat', label: t('nav.chat'), icon: '💬' },
     { id: 'map', label: t('nav.map'), icon: '🗺️' },
     { id: 'facilities', label: t('nav.facilities'), icon: '🔍' },
+    { id: 'lostfound', label: t('facilities.lost_found'), icon: '👨‍👩‍👧‍👦' },
   ];
 
   return (
