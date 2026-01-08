@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { EmergencyCase, MOCK_ZONES } from './types';
+import { emergencyService } from '../../services/emergencyService';
 
 // Mock data generator
 const generateMockCase = (): EmergencyCase => {
@@ -38,17 +39,42 @@ export const LiveOperationsFeed: React.FC<LiveOperationsFeedProps> = ({ onCaseSe
     const [incidents, setIncidents] = useState<EmergencyCase[]>([]);
 
     useEffect(() => {
-        // Initial Mock Data
-        setIncidents([generateMockCase(), generateMockCase()]);
+        // Initial Data Load: Combined Mock + Real
+        const loadIncidents = () => {
+            const real = emergencyService.getEmergencies();
+            // For demo, we keep generating mocks, but prioritize real ones at the top
+            setIncidents(prev => {
+                // Filter out reals from prev to avoid dupes if re-loading
+                const mocks = prev.filter(p => !p.id.startsWith('LIVE'));
 
-        // Simulate incoming alerts
+                // If no mocks yet, generate some
+                const effectiveMocks = mocks.length > 0 ? mocks : [generateMockCase(), generateMockCase()];
+
+                return [...real, ...effectiveMocks].slice(0, 50);
+            });
+        };
+
+        loadIncidents();
+
+        // Listen for updates from other tabs (User App SOS)
+        const handleStorageChange = () => loadIncidents();
+        window.addEventListener('storage', handleStorageChange);
+
+        // Simulate incoming alerts (Mock)
         const interval = setInterval(() => {
             if (Math.random() > 0.7) {
-                setIncidents(prev => [generateMockCase(), ...prev].slice(0, 20)); // Keep last 20
+                setIncidents(prev => {
+                    const real = emergencyService.getEmergencies();
+                    const mocks = prev.filter(p => !p.id.startsWith('LIVE'));
+                    return [...real, generateMockCase(), ...mocks].slice(0, 50);
+                });
             }
         }, 3000);
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }, []);
 
     const getTypeColor = (type: string) => {

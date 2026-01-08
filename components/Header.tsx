@@ -5,6 +5,7 @@ import { UserIcon, MapIcon, HomeIcon, AlertIcon } from './icons';
 import { APP_NAME, APP_NAME_HINDI } from '../constants';
 import { LanguageSelector } from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
+import { emergencyService } from '../services/emergencyService';
 
 interface HeaderProps {
   setPage: (page: 'chat' | 'profile' | 'map' | 'facilities' | 'emergency' | 'lostfound') => void;
@@ -58,7 +59,12 @@ export const Header: React.FC<HeaderProps> = ({ setPage, currentPage = 'chat' })
 
             {/* Emergency SOS Button */}
             <button
-              onClick={() => setPage('emergency')}
+              onClick={() => {
+                setPage('emergency');
+                // Auto-report emergency for demo purposes when clicking SOS
+                // In a real app, this would happen after confirmation in the EmergencyPanel
+                emergencyService.reportEmergency('Medical', 20.0083, 73.7922, "SOS Button Pressed by User");
+              }}
               className="px-3 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all emergency-pulse"
             >
               🆘 {t('emergency_sos')}
