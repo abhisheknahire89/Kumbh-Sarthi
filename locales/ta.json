@@ -1,0 +1,61 @@
+{
+    "app_name": "Kumbh Sarthi",
+    "subtitle": "Your Guide for Kumbh Mela Nashik 2026",
+    "emergency_sos": "SOS",
+    "nav": {
+        "chat": "Chat (அரட்டை)",
+        "map": "Map (வரைபடம்)",
+        "facilities": "Facilities (வசதிகள்)",
+        "profile": "Profile (சுயவிவரம்)"
+    },
+    "assistant": {
+        "listening": "Listening...",
+        "speaking": "Kumbh Sarthi is Speaking...",
+        "thinking": "Thinking...",
+        "error": "Connection Error",
+        "tell_concern": "Tell me your concern (உங்கள் கவலையைச் சொல்லுங்கள்)",
+        "greeting": "Namaste! I am Kumbh Sarthi.",
+        "intro": "I am Kumbh Sarthi, your AI assistant for Kumbh Mela Nashik 2026.",
+        "help_prompt": "I can help you with:",
+        "ask_placeholder": "Ask anything (எதையும் கேளுங்கள்)...",
+        "features": {
+            "ghats": "Finding ghats, temples & religious sites",
+            "facilities": "Locating toilets, water & food facilities",
+            "emergency": "Emergency assistance (ambulance, police)",
+            "shahi_snan": "Shahi Snan dates & timings",
+            "navigation": "Navigation to nearby places"
+        }
+    },
+    "facilities": {
+        "toilet": "Toilet (கழிப்பறை)",
+        "water": "Water (தண்ணீர்)",
+        "medical": "Medical (மருத்துவம்)",
+        "ghat": "Ghat (படித்துறை)",
+        "food": "Food (உணவு)",
+        "parking": "Parking (வாகன நிறுத்தம்)",
+        "police": "Police (காவல்துறை)",
+        "lost_found": "Lost & Found (தொலைந்துபோனவை/கண்டெடுக்கப்பட்டவை)",
+        "lostfound": "Lost & Found",
+        "temple": "Temple (கோவில்)",
+        "helpdesk": "Help Desk (உதவி மையம்)",
+        "select_category": "Select a category above",
+        "no_results": "No {{type}} nearby",
+        "enable_location": "Enable location to see distances",
+        "view_map": "View on Map",
+        "navigate": "Navigate"
+    },
+    "action": {
+        "open_maps": "Open Maps",
+        "call": "Call",
+        "directions": "Directions",
+        "end_session": "End Session",
+        "view_map": "View on Map",
+        "navigate": "Navigate"
+    },
+    "common": {
+        "language": "Language",
+        "settings": "Settings",
+        "close": "Close",
+        "loading": "Loading..."
+    }
+}

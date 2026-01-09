@@ -5,7 +5,7 @@ export interface EmergencyCase {
     type: 'Medical' | 'Fire' | 'Police' | 'Crowd' | 'LostPerson';
     zone: string;
     timestamp: string; // ISO string
-    status: 'New' | 'Dispatched' | 'OnScene' | 'Resolved';
+    status: 'New' | 'Investigating' | 'Dispatched' | 'OnScene' | 'Resolved';
     coordinates: { lat: number; lng: number };
     language: string;
     transcriptSnippet?: string; // Short text of what user said

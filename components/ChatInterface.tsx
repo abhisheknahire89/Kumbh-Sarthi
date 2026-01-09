@@ -33,7 +33,11 @@ const WELCOME_MESSAGE = `🙏 **जय श्री राम! हर हर म
 Ask me anything in Hindi, Marathi, English or your language! 
 कुछ भी पूछें - हिंदी, मराठी या अंग्रेजी में!`;
 
-export const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+    onNavigate: (page: 'chat' | 'profile' | 'map' | 'facilities' | 'emergency' | 'lostfound' | 'admin') => void;
+}
+
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onNavigate }) => {
     const { user } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -232,6 +236,7 @@ export const ChatInterface: React.FC = () => {
                 <AssistantInterface
                     onClose={() => setIsAssistantActive(false)}
                     onSessionEnd={handleSessionEnd}
+                    onNavigate={onNavigate}
                 />
             )}
             <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">

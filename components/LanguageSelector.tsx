@@ -7,7 +7,10 @@ export const LanguageSelector: React.FC = () => {
     const languages = [
         { code: 'en', label: 'English', native: 'ENG' },
         { code: 'hi', label: 'Hindi', native: 'हिंदी' },
-        { code: 'mr', label: 'Marathi', native: 'मराठी' }
+        { code: 'mr', label: 'Marathi', native: 'मراठी' },
+        { code: 'gu', label: 'Gujarati', native: 'ગુજ' },
+        { code: 'te', label: 'Telugu', native: 'తెలు' },
+        { code: 'ta', label: 'Tamil', native: 'தமிழ்' }
     ];
 
     // Handle language change
@@ -23,8 +26,8 @@ export const LanguageSelector: React.FC = () => {
                     key={lang.code}
                     onClick={() => changeLanguage(lang.code)}
                     className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all duration-200 ${i18n.language.startsWith(lang.code)
-                            ? 'bg-brand-primary text-white shadow-lg scale-105'
-                            : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/10'
+                        ? 'bg-brand-primary text-white shadow-lg scale-105'
+                        : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/10'
                         }`}
                     aria-label={`Switch to ${lang.label}`}
                 >

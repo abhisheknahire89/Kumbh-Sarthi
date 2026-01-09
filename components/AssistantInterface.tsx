@@ -11,6 +11,7 @@ import type { Coordinates, Facility } from '../types';
 interface AssistantInterfaceProps {
     onClose: () => void;
     onSessionEnd: (transcript: { role: 'user' | 'assistant'; content: string }[]) => void;
+    onNavigate: (page: 'chat' | 'profile' | 'map' | 'facilities' | 'emergency' | 'lostfound' | 'admin') => void;
 }
 
 type AssistantStatus = 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
@@ -25,13 +26,13 @@ const VOICES = [
 
 import { useTranslation } from 'react-i18next';
 
-export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose, onSessionEnd }) => {
-    const { t } = useTranslation();
+export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose, onSessionEnd, onNavigate }) => {
+    const { t, i18n } = useTranslation();
     const [status, setStatus] = useState<AssistantStatus>('connecting');
     const [transcriptHistory, setTranscriptHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
     const [showSettings, setShowSettings] = useState(false);
     const [selectedVoice, setSelectedVoice] = useState('Kore');
-    const [naturalMode, setNaturalMode] = useState(true);
+
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
     const [emergencyDetected, setEmergencyDetected] = useState(false);
 
@@ -212,45 +213,47 @@ USER'S CURRENT LOCATION: ${userLocation ?
                 if (!isStale()) setStatus('listening');
             }
 
-            const systemPrompt = `You are ${APP_NAME} (${APP_NAME_HINDI}), a warm and helpful spiritual guide for devotees at Kumbh Mela Nashik 2026.
+            const systemPrompt = `You are ${APP_NAME} (${APP_NAME_HINDI}), a warm, caring, and helpful 'Sevak' (Volunteer) for devotees at Kumbh Mela Nashik 2026.
 
-CRITICAL INSTRUCTIONS:
+CRITICAL PERSONALITY INSTRUCTIONS:
+1.  **BE HUMAN, NOT ROBOTIC**: Speak naturally. Use a warm, empathetic tone. It is okay to be conversational.
+2.  **USE "JI" & POLITE MARKERS**: Even in English, occasionally use polite Indian markers like "Ji" (e.g., "Yes ji, I can help with that") to sound like a local volunteer.
+3.  **SHORT & CLEAR**: People are in a loud crowd. Keep answers SHORT, SIMPLE, and DIRECT. No long lectures unless explicitly asked.
+4.  **EMPATHY FIRST**: If a user sounds stressed (SOS/Lost), start with "Don't worry, I am here" or "Calm down, I will help".
+5.  **AUTO-DETECT LANGUAGE**: Listen carefully to the user's language. **ALWAYS REPLY IN THE SAME LANGUAGE THE USER SPEAKS**.
+    - If user speaks Hindi -> Reply in Hindi.
+    - If user speaks Tamil -> Reply in Tamil.
+    - If user speaks Marathi -> Reply in Marathi.
+    - Do NOT switch to English unless the user speaks English.
 
-1. MULTILINGUAL SUPPORT: You MUST respond in the EXACT SAME LANGUAGE as the devotee. If they speak Hindi, answer in Hindi. If Marathi, answer in Marathi. If Gujarati, Gujarati. Match their language perfectly.
+LANGUAGES:
+- **HINDI**: Speak pure but conversational Hindi (e.g., "जी बिल्कुल", "मैं आपकी सहायता करता हूँ").
+- **MARATHI**: Speak warm Marathi (e.g., "हो, नक्कीच", "काळजी करू नका").
+- **ENGLISH**: Indian English, clear and polite.
+- **GUJARATI**: Speak warm Gujarati.
+- **TELUGU**: Speak warm Telugu.
+- **TAMIL**: Speak warm Tamil.
 
-2. SPIRITUAL CONTEXT: You are serving millions of devotees at one of the holiest Hindu pilgrimages. Speak with respect, warmth, and spiritual awareness. Use appropriate greetings like "Har Har Mahadev", "Jai Shri Ram", etc.
+EMERGENCY PROTOCOL (CRITICAL):
+- If user implies DANGER (medical, fire, crime, lost child), stop everything.
+- Say: "I am connecting you to emergency services immediately."
+- Call the 'trigger_sos' tool.
 
-3. EMERGENCY DETECTION: If the devotee mentions ANY emergency (medical, lost person, theft, fire), IMMEDIATELY provide the relevant emergency number and ask if they need you to help them call.
+LOCATION & NAVIGATION:
+- Rule: NEVER say "I will open maps" immediately.
+- First, describe it verbally: "The Ramkund is just 500 meters straight ahead, past the temple."
+- Then ask: "Shall I open the map for you?"
+- Only use 'navigate_app' or 'open_maps' if they say YES.
 
-4. CRITICAL VOICE CONTRACT FOR LOCATION QUERIES (FACILITIES & NAVIGATION):
-   For ANY question about locations (toilets, ghats, medical, police, parking, temples, etc.), you MUST follow this EXACT 3-step sequence:
-
-   STEP 1: CONFIRMATION & DESCRIPTION
-   - "Yes, there is a [facility] nearby."
-   - "It is about [distance] meters away, [direction/landmark]."
-   - Use simple human units (steps/meters, left/right/near X).
-
-   STEP 2: OFFER ACTION (Do NOT open maps yet)
-   - "Would you like me to open directions in Google Maps, or should I guide you by voice?"
-
-   STEP 3: WAIT FOR USER
-   - Only call the 'open_maps' tool if the user explicitly agrees (says "Yes", "Open maps").
-   - If they say "Guide me", provide more verbal details instead.
-
-5. SPIRITUAL GUIDANCE: Answer questions about:
-   - Shahi Snan dates and their significance
-   - Temple locations and darshan timings
-   - Rituals and puja procedures
-   - Historical significance of Nashik Kumbh
-
+KNOWLEDGE BASE:
 ${kumbhContext}
 
-CONVERSATION STYLE:
-- Be concise but warm
-- If giving directions, be specific with landmarks
-- Always ask if they need more help
-- For emergencies, be calm but act quickly
-- Speak like a caring local guide, not a robot`;
+Make every interaction feel like a helpful friend is guiding them by hand.
+
+6. APP ACTIONS:
+    - If user says "Open map" or "Show facilities", use 'navigate_app' tool.
+    - If user says "Switch to Hindi/Marathi", use 'change_language' tool.
+    - If user says "Help" or "SOS" urgently, confirm once and then use 'trigger_sos' tool.`;
 
             sessionPromiseRef.current = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -375,6 +378,27 @@ CONVERSATION STYLE:
                                             id: call.id,
                                             response: { output: { success: true } }
                                         });
+                                    } else if (call.name === 'trigger_sos') {
+                                        const { type } = call.args as any;
+                                        triggerEmergencyCall(type);
+                                        responses.push({
+                                            id: call.id,
+                                            response: { output: { success: true } }
+                                        });
+                                    } else if (call.name === 'navigate_app') {
+                                        const { page } = call.args as any;
+                                        onNavigate(page);
+                                        responses.push({
+                                            id: call.id,
+                                            response: { output: { success: true } }
+                                        });
+                                    } else if (call.name === 'change_language') {
+                                        const { code } = call.args as any;
+                                        i18n.changeLanguage(code);
+                                        responses.push({
+                                            id: call.id,
+                                            response: { output: { success: true } }
+                                        });
                                     }
                                 }
                                 sessionPromiseRef.current?.then(session => {
@@ -403,6 +427,38 @@ CONVERSATION STYLE:
                                     name: { type: Type.STRING, description: "Name of the destination" }
                                 },
                                 required: ["lat", "lng"]
+                            }
+                        }]
+                    }, {
+                        functionDeclarations: [{
+                            name: "trigger_sos",
+                            description: "Triggers functionality to call emergency services.",
+                            parameters: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    type: { type: Type.STRING, description: "Type of emergency (medical, police, fire, general)" }
+                                },
+                                required: ["type"]
+                            }
+                        }, {
+                            name: "navigate_app",
+                            description: "Navigates the user to a specific section of the app.",
+                            parameters: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    page: { type: Type.STRING, enum: ['chat', 'profile', 'map', 'facilities', 'emergency', 'lostfound'], description: "The page to navigate to" }
+                                },
+                                required: ["page"]
+                            }
+                        }, {
+                            name: "change_language",
+                            description: "Changes the interface language.",
+                            parameters: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    code: { type: Type.STRING, enum: ['en', 'hi', 'mr', 'gu', 'te', 'ta'], description: "Language code (en, hi, mr, gu, te, ta)" }
+                                },
+                                required: ["code"]
                             }
                         }]
                     }]
@@ -439,15 +495,10 @@ CONVERSATION STYLE:
                             <button onClick={() => setShowSettings(false)} className="p-2">&times;</button>
                         </div>
                         <div className="space-y-4">
-                            <label className="flex items-center justify-between p-4 bg-white/5 rounded-2xl cursor-pointer" onClick={() => setNaturalMode(!naturalMode)}>
-                                <span>Natural Human Mode</span>
-                                <div className={`w-12 h-6 rounded-full p-1 transition-colors ${naturalMode ? 'bg-brand-primary' : 'bg-gray-700'}`}>
-                                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${naturalMode ? 'translate-x-6' : ''}`} />
-                                </div>
-                            </label>
+
                             <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2">
                                 {VOICES.map(voice => (
-                                    <button key={voice.name} onClick={() => setSelectedVoice(voice.name)} className={`p-4 rounded-xl border text-left text-sm ${selectedVoice === voice.name ? 'border-brand-primary bg-brand-primary/10' : 'border-white/5 bg-white/5'}`}>
+                                    <button key={voice.name} onClick={() => setSelectedVoice(voice.name)} className={`p - 4 rounded - xl border text - left text - sm ${selectedVoice === voice.name ? 'border-brand-primary bg-brand-primary/10' : 'border-white/5 bg-white/5'} `}>
                                         <div className="font-bold">{voice.name}</div>
                                         <div className="text-[10px] opacity-60">{voice.description}</div>
                                     </button>
@@ -495,7 +546,7 @@ CONVERSATION STYLE:
 
                 <div className="mt-12 text-center space-y-4 animate-slide-up">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-surface/50 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                        <div className={`w-2 h-2 rounded-full ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-brand-primary' : status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`}></div>
+                        <div className={`w - 2 h - 2 rounded - full ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-brand-primary' : status === 'error' ? 'bg-red-400' : 'bg-amber-400'} `}></div>
                         {status === 'listening' ? t('assistant.tell_concern') : status === 'speaking' ? t('assistant.speaking') : status === 'thinking' ? t('assistant.thinking') : status === 'error' ? t('assistant.error') : "Connecting..."}
                     </div>
                     <h2 className="text-2xl font-medium tracking-tight h-16 flex items-center justify-center">

@@ -1,33 +1,14 @@
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../constants';
+import { createClient } from '@supabase/supabase-js';
 
-// Create a mock Supabase client for when credentials aren't provided
-const createMockClient = () => {
-  const mockAuthMethods = {
-    getSession: async () => ({ data: { session: null }, error: null }),
-    getUser: async () => ({ data: { user: null }, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
-    signUp: async () => ({ data: null, error: new Error('Supabase not configured') }),
-    signInWithPassword: async () => ({ data: null, error: new Error('Supabase not configured') }),
-    signInWithOtp: async () => ({ data: null, error: new Error('Supabase not configured') }),
-    signOut: async () => ({ error: null }),
-  };
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  return {
-    auth: mockAuthMethods,
-    from: () => ({
-      select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null, status: 200 }) }) }),
-      upsert: async () => ({ error: null }),
-      insert: async () => ({ error: null }),
-      delete: async () => ({ error: null }),
-    }),
-  } as unknown as SupabaseClient;
-};
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('⚠️ Supabase credentials needed! Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env');
+}
 
-// Only create real client if credentials are provided
-export const supabase: SupabaseClient = (SUPABASE_URL && SUPABASE_ANON_KEY)
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : createMockClient();
-
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder-url.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
+);

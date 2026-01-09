@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { EMERGENCY_CONTACTS } from '../constants';
-import { triggerEmergencyCall, getEmergencyLocationMessage, shareEmergencyViaWhatsApp, copyEmergencyLocation } from '../services/emergencyService';
+import { emergencyService, triggerEmergencyCall, getEmergencyLocationMessage, shareEmergencyViaWhatsApp, copyEmergencyLocation } from '../services/emergencyService';
 import type { EmergencyContact, Coordinates } from '../types';
+import type { EmergencyCase } from './admin/types';
 
 interface EmergencyPanelProps {
     userLocation: Coordinates | null;
@@ -17,6 +18,35 @@ export const EmergencyPanel: React.FC<EmergencyPanelProps> = ({
     const [showConfirm, setShowConfirm] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [locationText, setLocationText] = useState<string>('');
+    const [activeEmergencyId, setActiveEmergencyId] = useState<string | null>(null);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+    // Listen for status updates from Control Room
+    React.useEffect(() => {
+        const checkStatus = () => {
+            if (activeEmergencyId) {
+                const emergency = emergencyService.getEmergencyById(activeEmergencyId);
+                if (emergency && emergency.status !== 'New') {
+                    // Map status to user-friendly message
+                    const statusMap: Record<string, string> = {
+                        'Investigating': '🔍 Help Center is reviewing your request...',
+                        'Dispatching': '🚑 Team Dispatched! Help is on the way.',
+                        'Resolved': '✅ Emergency marked as Resolved.'
+                    };
+                    setStatusMessage(statusMap[emergency.status] || `Status: ${emergency.status}`);
+                }
+            }
+        };
+
+        window.addEventListener('storage', checkStatus);
+        // Also poll every 2 seconds just in case text updates don't trigger storage in same tab reliably (though separate tabs do)
+        const interval = setInterval(checkStatus, 2000);
+
+        return () => {
+            window.removeEventListener('storage', checkStatus);
+            clearInterval(interval);
+        };
+    }, [activeEmergencyId]);
 
     const handleEmergencyCall = async (type: EmergencyContact['type']) => {
         setShowConfirm(type);
@@ -24,6 +54,21 @@ export const EmergencyPanel: React.FC<EmergencyPanelProps> = ({
 
     const confirmCall = (type: EmergencyContact['type']) => {
         triggerEmergencyCall(type);
+        // Also explicitly report here to get the ID, although triggerEmergencyCall does it too.
+        // We need the ID to track it.
+
+        const typeMap: Record<string, EmergencyCase['type']> = {
+            'ambulance': 'Medical',
+            'police': 'Police',
+            'fire': 'Fire',
+            'helpdesk': 'Crowd'
+        };
+
+        const incidentType = typeMap[type] || 'Medical';
+
+        const id = emergencyService.reportEmergency(incidentType, 20.0083, 73.7922, "User called " + type);
+        setActiveEmergencyId(id);
+        setStatusMessage("🚨 Request Sent. Waiting for response...");
         setShowConfirm(null);
     };
 
@@ -67,6 +112,14 @@ export const EmergencyPanel: React.FC<EmergencyPanelProps> = ({
                     </button>
                 )}
             </div>
+
+            {/* Status Message Banner */}
+            {statusMessage && (
+                <div className="mb-6 p-4 rounded-xl bg-blue-500/20 border border-blue-500/40 animate-pulse text-center">
+                    <div className="text-xl mb-1">📢</div>
+                    <div className="font-bold text-blue-200 text-lg">{statusMessage}</div>
+                </div>
+            )}
 
             {/* Main SOS Button */}
             <button

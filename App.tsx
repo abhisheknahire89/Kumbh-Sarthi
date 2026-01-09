@@ -67,7 +67,7 @@ function App() {
       <Header setPage={setPage} currentPage={page} />
 
       <main className="flex-1 flex flex-col overflow-hidden max-w-4xl w-full mx-auto">
-        {page === 'chat' && <ChatInterface />}
+        {page === 'chat' && <ChatInterface onNavigate={setPage} />}
 
         {page === 'profile' && session && <ProfilePage setPage={setPage} />}
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { EmergencyCase } from './types';
+import { emergencyService } from '../../services/emergencyService';
 
 interface EmergencyDetailPanelProps {
     data: EmergencyCase | null;
@@ -8,6 +9,13 @@ interface EmergencyDetailPanelProps {
 
 export const EmergencyDetailPanel: React.FC<EmergencyDetailPanelProps> = ({ data, onClose }) => {
     if (!data) return null;
+
+    const handleAction = (status: EmergencyCase['status']) => {
+        emergencyService.updateEmergencyStatus(data.id, status);
+        // Force refresh or similar might be needed, but local storage event usually handles it if listing component listens,
+        // but this panel gets 'data' from props. The parent needs to update.
+        // For now, allow the action. The list will update and re-render this panel if selected.
+    };
 
     return (
         <div className="absolute right-0 top-0 bottom-0 w-96 bg-slate-900 border-l border-slate-700 shadow-2xl animate-slide-left z-20 flex flex-col">
@@ -75,13 +83,22 @@ export const EmergencyDetailPanel: React.FC<EmergencyDetailPanelProps> = ({ data
 
                 {/* Actions */}
                 <div className="pt-4 border-t border-slate-800 space-y-2">
-                    <button className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm">
+                    <button
+                        onClick={() => handleAction('Dispatched')}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm transition-all active:scale-95">
                         📞 Dispatch Control Room
                     </button>
                     <button className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded font-bold text-sm">
                         📍 View on Master Map
                     </button>
-                    <button className="w-full py-2 border border-red-500/50 text-red-400 hover:bg-red-500/10 rounded font-bold text-sm">
+                    <button
+                        onClick={() => handleAction('Resolved')}
+                        className="w-full py-2 border border-green-500/50 text-green-400 hover:bg-green-500/10 rounded font-bold text-sm transition-all active:scale-95">
+                        ✅ Mark as Resolved
+                    </button>
+                    <button
+                        onClick={() => handleAction('Investigating')}
+                        className="w-full py-2 border border-red-500/50 text-red-400 hover:bg-red-500/10 rounded font-bold text-sm transition-all active:scale-95">
                         ⚠️ Escalate to Supervisor
                     </button>
                 </div>

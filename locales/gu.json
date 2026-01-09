@@ -1,0 +1,61 @@
+{
+    "app_name": "Kumbh Sarthi",
+    "subtitle": "Your Guide for Kumbh Mela Nashik 2026",
+    "emergency_sos": "SOS",
+    "nav": {
+        "chat": "Chat (વાતચીત)",
+        "map": "Map (નકશો)",
+        "facilities": "Facilities (સુવિધાઓ)",
+        "profile": "Profile (પ્રોફાઇલ)"
+    },
+    "assistant": {
+        "listening": "Listening...",
+        "speaking": "Kumbh Sarthi is Speaking...",
+        "thinking": "Thinking...",
+        "error": "Connection Error",
+        "tell_concern": "Tell me your concern (તમારી સમસ્યા જણાવો)",
+        "greeting": "Namaste! I am Kumbh Sarthi.",
+        "intro": "I am Kumbh Sarthi, your AI assistant for Kumbh Mela Nashik 2026.",
+        "help_prompt": "I can help you with:",
+        "ask_placeholder": "Ask anything (કંઈપણ પૂછો)...",
+        "features": {
+            "ghats": "Finding ghats, temples & religious sites",
+            "facilities": "Locating toilets, water & food facilities",
+            "emergency": "Emergency assistance (ambulance, police)",
+            "shahi_snan": "Shahi Snan dates & timings",
+            "navigation": "Navigation to nearby places"
+        }
+    },
+    "facilities": {
+        "toilet": "Toilet (શૌચાલય)",
+        "water": "Water (પાણી)",
+        "medical": "Medical (તબીબી)",
+        "ghat": "Ghat (ઘાટ)",
+        "food": "Food (ખોરાક)",
+        "parking": "Parking (પાર્કિંગ)",
+        "police": "Police (પોલીસ)",
+        "lost_found": "Lost & Found (ખોવાઈ/મળ્યું)",
+        "lostfound": "Lost & Found",
+        "temple": "Temple (મંદિર)",
+        "helpdesk": "Help Desk (સહાયતા)",
+        "select_category": "Select a category above",
+        "no_results": "No {{type}} nearby",
+        "enable_location": "Enable location to see distances",
+        "view_map": "View on Map",
+        "navigate": "Navigate"
+    },
+    "action": {
+        "open_maps": "Open Maps",
+        "call": "Call",
+        "directions": "Directions",
+        "end_session": "End Session",
+        "view_map": "View on Map",
+        "navigate": "Navigate"
+    },
+    "common": {
+        "language": "Language",
+        "settings": "Settings",
+        "close": "Close",
+        "loading": "Loading..."
+    }
+}

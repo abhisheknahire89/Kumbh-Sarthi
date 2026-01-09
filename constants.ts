@@ -61,7 +61,6 @@ export const SUPPORTED_LANGUAGES = [
     { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી' },
     { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
     { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
-    { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' },
 ];
 
 // Voice Assistant Greeting URL (to be updated with Kumbh-specific greeting)
