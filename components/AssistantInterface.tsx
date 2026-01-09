@@ -256,7 +256,7 @@ Make every interaction feel like a helpful friend is guiding them by hand.
     - If user says "Help" or "SOS" urgently, confirm once and then use 'trigger_sos' tool.`;
 
             sessionPromiseRef.current = ai.live.connect({
-                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                model: 'gemini-2.0-flash-exp',
                 callbacks: {
                     onopen: async () => {
                         // Ensure output audio context is resumed for playback
@@ -464,113 +464,120 @@ Make every interaction feel like a helpful friend is guiding them by hand.
                     }]
                 },
             });
-        } catch (err) { setStatus('error'); }
-    };
+        });
+    } catch (err) {
+        console.error(err);
+        setStatus('error');
+        // Fallback: Speak error using browser TTS
+        const utterance = new SpeechSynthesisUtterance("Sorry, I cannot connect to the voice server. Please check your internet or API key.");
+        window.speechSynthesis.speak(utterance);
+    }
+};
 
-    useEffect(() => {
-        initialize();
-        return () => cleanup();
-    }, []);
+useEffect(() => {
+    initialize();
+    return () => cleanup();
+}, []);
 
-    const handleApplySettings = () => { cleanup(); setShowSettings(false); setTimeout(() => initialize(true), 200); };
+const handleApplySettings = () => { cleanup(); setShowSettings(false); setTimeout(() => initialize(true), 200); };
 
-    const handleEmergencyCall = () => {
-        triggerEmergencyCall('ambulance');
-    };
+const handleEmergencyCall = () => {
+    triggerEmergencyCall('ambulance');
+};
 
-    const activeAnalyser = (status === 'speaking') ? outputAnalyserNodeRef.current : inputAnalyserNodeRef.current;
+const activeAnalyser = (status === 'speaking') ? outputAnalyserNodeRef.current : inputAnalyserNodeRef.current;
 
-    return (
-        <div className="fixed inset-0 bg-brand-bg/95 backdrop-blur-3xl z-50 flex flex-col items-center justify-center animate-fade-in text-brand-text-primary overflow-hidden">
-            <div className="absolute inset-0 z-[-1] overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand-primary/10 rounded-full blur-[120px] animate-pulse"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[120px] animate-pulse delay-1000"></div>
-            </div>
+return (
+    <div className="fixed inset-0 bg-brand-bg/95 backdrop-blur-3xl z-50 flex flex-col items-center justify-center animate-fade-in text-brand-text-primary overflow-hidden">
+        <div className="absolute inset-0 z-[-1] overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand-primary/10 rounded-full blur-[120px] animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[120px] animate-pulse delay-1000"></div>
+        </div>
 
-            {showSettings && (
-                <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-                    <div className="w-full max-w-md bg-brand-bg border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold">{t('app_name')} {t('common.settings')}</h2>
-                            <button onClick={() => setShowSettings(false)} className="p-2">&times;</button>
+        {showSettings && (
+            <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="w-full max-w-md bg-brand-bg border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-bold">{t('app_name')} {t('common.settings')}</h2>
+                        <button onClick={() => setShowSettings(false)} className="p-2">&times;</button>
+                    </div>
+                    <div className="space-y-4">
+
+                        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2">
+                            {VOICES.map(voice => (
+                                <button key={voice.name} onClick={() => setSelectedVoice(voice.name)} className={`p - 4 rounded - xl border text - left text - sm ${selectedVoice === voice.name ? 'border-brand-primary bg-brand-primary/10' : 'border-white/5 bg-white/5'} `}>
+                                    <div className="font-bold">{voice.name}</div>
+                                    <div className="text-[10px] opacity-60">{voice.description}</div>
+                                </button>
+                            ))}
                         </div>
-                        <div className="space-y-4">
-
-                            <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2">
-                                {VOICES.map(voice => (
-                                    <button key={voice.name} onClick={() => setSelectedVoice(voice.name)} className={`p - 4 rounded - xl border text - left text - sm ${selectedVoice === voice.name ? 'border-brand-primary bg-brand-primary/10' : 'border-white/5 bg-white/5'} `}>
-                                        <div className="font-bold">{voice.name}</div>
-                                        <div className="text-[10px] opacity-60">{voice.description}</div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <button onClick={handleApplySettings} className="w-full py-4 bg-brand-primary rounded-2xl font-bold">Save & Reconnect</button>
                     </div>
-                </div>
-            )}
-
-            <div className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center z-40">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center text-xl">🙏</div>
-                    <div>
-                        <div className="text-sm font-bold">{APP_NAME.toUpperCase()} LIVE</div>
-                        <div className="text-xs text-brand-text-secondary">{APP_NAME_HINDI}</div>
-                    </div>
-                </div>
-                <button onClick={() => setShowSettings(true)} className="p-3 bg-white/5 rounded-2xl transition-transform active:scale-95"><SettingsIcon className="w-5 h-5" /></button>
-            </div>
-
-            {/* Emergency Alert Banner */}
-            {emergencyDetected && (
-                <div className="absolute top-24 left-4 right-4 bg-red-500/20 border border-red-500/50 rounded-2xl p-4 z-40 animate-pulse">
-                    <div className="flex items-center justify-between">
-                        <span className="text-red-400 font-bold">🆘 Emergency Detected</span>
-                        <button onClick={handleEmergencyCall} className="px-4 py-2 bg-red-500 text-white rounded-xl font-bold text-sm">
-                            Call 108
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            <div className="relative flex flex-col items-center justify-center flex-1 w-full max-w-lg px-8">
-                <div className="relative w-[340px] h-[340px] flex items-center justify-center">
-                    {status === 'connecting' ? (
-                        <div className="w-24 h-24 text-brand-primary animate-pulse text-6xl">🙏</div>
-                    ) : status === 'error' ? (
-                        <div className="w-24 h-24 text-red-400 text-6xl">⚠️</div>
-                    ) : (
-                        <Waveform analyserNode={activeAnalyser} width={340} height={340} />
-                    )}
-                </div>
-
-                <div className="mt-12 text-center space-y-4 animate-slide-up">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-surface/50 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                        <div className={`w - 2 h - 2 rounded - full ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-brand-primary' : status === 'error' ? 'bg-red-400' : 'bg-amber-400'} `}></div>
-                        {status === 'listening' ? t('assistant.tell_concern') : status === 'speaking' ? t('assistant.speaking') : status === 'thinking' ? t('assistant.thinking') : status === 'error' ? t('assistant.error') : "Connecting..."}
-                    </div>
-                    <h2 className="text-2xl font-medium tracking-tight h-16 flex items-center justify-center">
-                        {status === 'listening' ? t('assistant.help_prompt') :
-                            status === 'speaking' ? "🙏 " + t('assistant.greeting') :
-                                status === 'thinking' ? "..." :
-                                    status === 'error' ? t('assistant.error') : "🙏"}
-                    </h2>
-                    {status === 'error' && (
-                        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-300 max-w-xs">
-                            <p className="font-bold mb-2">🔑 API Key Missing</p>
-                            <p>Create a <code className="bg-black/30 px-1 rounded">.env</code> file and add:</p>
-                            <code className="block mt-2 bg-black/30 p-2 rounded text-xs break-all">
-                                VITE_GEMINI_API_KEY=your_key
-                            </code>
-                            <p className="mt-2 text-xs opacity-70">Use the text chat instead!</p>
-                        </div>
-                    )}
+                    <button onClick={handleApplySettings} className="w-full py-4 bg-brand-primary rounded-2xl font-bold">Save & Reconnect</button>
                 </div>
             </div>
+        )}
 
-            <div className="p-12 w-full flex justify-center z-40">
-                <button onClick={handleClose} className="px-8 py-4 bg-red-500/10 text-red-400 rounded-3xl border border-red-500/20 font-bold uppercase tracking-widest text-sm hover:bg-red-500/20 transition-all">{t('action.end_session')}</button>
+        <div className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center z-40">
+            <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center text-xl">🙏</div>
+                <div>
+                    <div className="text-sm font-bold">{APP_NAME.toUpperCase()} LIVE</div>
+                    <div className="text-xs text-brand-text-secondary">{APP_NAME_HINDI}</div>
+                </div>
+            </div>
+            <button onClick={() => setShowSettings(true)} className="p-3 bg-white/5 rounded-2xl transition-transform active:scale-95"><SettingsIcon className="w-5 h-5" /></button>
+        </div>
+
+        {/* Emergency Alert Banner */}
+        {emergencyDetected && (
+            <div className="absolute top-24 left-4 right-4 bg-red-500/20 border border-red-500/50 rounded-2xl p-4 z-40 animate-pulse">
+                <div className="flex items-center justify-between">
+                    <span className="text-red-400 font-bold">🆘 Emergency Detected</span>
+                    <button onClick={handleEmergencyCall} className="px-4 py-2 bg-red-500 text-white rounded-xl font-bold text-sm">
+                        Call 108
+                    </button>
+                </div>
+            </div>
+        )}
+
+        <div className="relative flex flex-col items-center justify-center flex-1 w-full max-w-lg px-8">
+            <div className="relative w-[340px] h-[340px] flex items-center justify-center">
+                {status === 'connecting' ? (
+                    <div className="w-24 h-24 text-brand-primary animate-pulse text-6xl">🙏</div>
+                ) : status === 'error' ? (
+                    <div className="w-24 h-24 text-red-400 text-6xl">⚠️</div>
+                ) : (
+                    <Waveform analyserNode={activeAnalyser} width={340} height={340} />
+                )}
+            </div>
+
+            <div className="mt-12 text-center space-y-4 animate-slide-up">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-surface/50 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    <div className={`w - 2 h - 2 rounded - full ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-brand-primary' : status === 'error' ? 'bg-red-400' : 'bg-amber-400'} `}></div>
+                    {status === 'listening' ? t('assistant.tell_concern') : status === 'speaking' ? t('assistant.speaking') : status === 'thinking' ? t('assistant.thinking') : status === 'error' ? t('assistant.error') : "Connecting..."}
+                </div>
+                <h2 className="text-2xl font-medium tracking-tight h-16 flex items-center justify-center">
+                    {status === 'listening' ? t('assistant.help_prompt') :
+                        status === 'speaking' ? "🙏 " + t('assistant.greeting') :
+                            status === 'thinking' ? "..." :
+                                status === 'error' ? t('assistant.error') : "🙏"}
+                </h2>
+                {status === 'error' && (
+                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-300 max-w-xs">
+                        <p className="font-bold mb-2">🔑 API Key Missing</p>
+                        <p>Create a <code className="bg-black/30 px-1 rounded">.env</code> file and add:</p>
+                        <code className="block mt-2 bg-black/30 p-2 rounded text-xs break-all">
+                            VITE_GEMINI_API_KEY=your_key
+                        </code>
+                        <p className="mt-2 text-xs opacity-70">Use the text chat instead!</p>
+                    </div>
+                )}
             </div>
         </div>
-    );
+
+        <div className="p-12 w-full flex justify-center z-40">
+            <button onClick={handleClose} className="px-8 py-4 bg-red-500/10 text-red-400 rounded-3xl border border-red-500/20 font-bold uppercase tracking-widest text-sm hover:bg-red-500/20 transition-all">{t('action.end_session')}</button>
+        </div>
+    </div>
+);
 };
