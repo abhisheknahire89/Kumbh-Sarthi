@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, Type } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob, Type } from '@google/genai';
 import { Waveform } from './Waveform';
 import { KumbhSarthiIcon, SettingsIcon, MicrophoneIcon } from './icons';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
@@ -36,7 +36,7 @@ export const AssistantInterface: React.FC<AssistantInterfaceProps> = ({ onClose,
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
     const [emergencyDetected, setEmergencyDetected] = useState(false);
 
-    const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
+    const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
     const inputAnalyserNodeRef = useRef<AnalyserNode | null>(null);
