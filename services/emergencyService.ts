@@ -92,7 +92,10 @@ export const detectEmergencyKeywords = (text: string): { isEmergency: boolean; t
     return { isEmergency: false };
 };
 
-export const getEmergencyNumbersText = () => {
+export const getEmergencyNumbersText = (isHindi: boolean = false) => {
+    if (isHindi) {
+        return "एम्बुलेंस: 108, पुलिस: 100, फायर: 101, हेल्पलाइन: 1920";
+    }
     return "Ambulance: 108, Police: 100, Fire: 101, Helpline: 1920";
 };
 

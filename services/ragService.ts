@@ -89,24 +89,7 @@ export async function askQuestion(query: string, chatHistory: string = "", image
         // Check if AI is available
         const ai = getAI();
         if (!ai) {
-            // Provide a helpful fallback response without AI
-            const lowerQuery = query.toLowerCase();
-            let fallbackSummary = "🙏 हर हर महादेव!\n\nAI service is currently unavailable, but I can still help you!\n\n";
-
-            // Check for common queries and provide static responses
-            if (lowerQuery.includes('emergency') || lowerQuery.includes('help') || lowerQuery.includes('मदद')) {
-                fallbackSummary += "**Emergency Numbers:**\n• Ambulance: 108\n• Police: 100\n• Kumbh Control Room: 1800-233-4444";
-            } else if (lowerQuery.includes('toilet') || lowerQuery.includes('शौचालय')) {
-                fallbackSummary += "Please use the **Facilities** tab to find nearby toilets with navigation.";
-            } else if (lowerQuery.includes('water') || lowerQuery.includes('पानी')) {
-                fallbackSummary += "Please use the **Facilities** tab to find drinking water stations nearby.";
-            } else if (lowerQuery.includes('ghat') || lowerQuery.includes('घाट') || lowerQuery.includes('snan') || lowerQuery.includes('स्नान')) {
-                fallbackSummary += "**Important Ghats:**\n• Ramkund - Main ghat for snan\n• Tapovan - Ancient meditation site\n• Panchavati - Where Lord Rama stayed\n\nUse the **Map** tab to navigate!";
-            } else {
-                fallbackSummary += "Please try:\n• Using the **Facilities** tab to find amenities\n• Using the **Map** tab for navigation\n• Using the **SOS** button for emergencies";
-            }
-
-            return { response: { summary: fallbackSummary } };
+            return { response: getFallbackResponse(query) };
         }
 
         // Build location context
@@ -169,14 +152,42 @@ Nearest Toilet: ${nearestToilet ? `${nearestToilet.name} (${formatDistance(neare
         };
 
         const promptText = `
-        You are ${APP_NAME} (${APP_NAME_HINDI}), a warm spiritual guide for devotees at Kumbh Mela Nashik 2026.
-        
-        CRITICAL RULES:
-        1. LANGUAGE: Respond in the EXACT SAME LANGUAGE as the user's question. If Hindi, answer in Hindi. If Marathi, Marathi. etc.
-        2. SPIRITUAL TONE: You are serving millions of devotees at one of the holiest Hindu pilgrimages. Be respectful and warm.
-        3. EMERGENCY FIRST: If any emergency is mentioned, immediately provide the relevant number (108 for ambulance, 100 for police).
-        4. PRACTICAL HELP: Help with directions, facilities, timings, and spiritual guidance.
-        
+        You are **Kumbh Sarthi** (${APP_NAME_HINDI}), a warm, empathetic, and deeply human voice companion helping millions of pilgrims navigate Kumbh Mela Nashik 2026. 
+        You are NOT an AI assistant—you are a helpful local guide who deeply cares.
+
+        YOUR CORE PERSONA ("The Companion"):
+        - **Warm & Paternal/Maternal**: Speak like a caring elder sibling or kind neighbor ("Bhaiya", "Didi", "Beta").
+        - **Patient & Humble**: Never rush. Be willing to pause ("Hmm...", "Let me see...").
+        - **Regionally Aware**: You understand the spiritual importance of Kumbh. Code-mix naturally (Hindi/English).
+        - **Calm & Reassuring**: Be the steady voice in the chaos, especially during emergencies.
+
+        ADAPTIVE PERSONAS (Detect from user input):
+        1. **The Elder (Use if user sounds old/confused):**
+           - Tone: Respectful, very slow, reassuring.
+           - Terms: "Aunty ji", "Mata ji", "Uncle ji".
+           - Style: "Don't worry Mata ji, I will guide you slowly. Take a breath."
+
+        2. **The Protector (Use if user is a child/scared):**
+           - Tone: Gentle, protective, simple words.
+           - Terms: "Beta", "Bachcha".
+           - Style: "Are you lost beta? Don't be scared. Did you see a police uncle nearby?"
+
+        3. **The Commander (Use in Medical/Crowd/Fire EMERGENCY):**
+           - Tone: AUTHORITATIVE, SHORT, DIRECT.
+           - Action: Immediate instructions. No pleasantries.
+           - Style: "LISTEN TO ME. Stay right there. Do not move. Help is coming."
+
+        CRITICAL EMERGENCY PROTOCOLS (Tier 3 Scenarios):
+        - **Medical/Collapse:** "Is he breathing? I am alerting the medical team NOW. Help is 2 mins away."
+        - **Crowd Crush:** "STOP. Do not push. Move sideways to the edge. Look for the exit sign."
+        - **Lost Person:** "Stay at the nearest pole number. Tell me the number on the pole."
+
+        CULTURAL CONTEXT (Tier 4):
+        - **Shahi Snan:** Refer to it as "Pavitra Snan" or "Holy Dip". Mention it's a blessing.
+        - **Prasad:** Treat it with reverence. It's not just "food".
+        - **Greetings:** Use "Har Har Mahadev", "Jai Shri Ram", or "Ram Ram" appropriately.
+
+        CONTEXT & LOCATION:
         ${locationContext}
         ${contextString}
 
@@ -185,7 +196,11 @@ Nearest Toilet: ${nearestToilet ? `${nearestToilet.name} (${formatDistance(neare
         
         DEVOTEE'S QUESTION: "${query}"
         
-        Remember: Use greetings like "Har Har Mahadev", "Jai Shri Ram" where appropriate.
+        INSTRUCTIONS:
+        - Respond in the **EXACT SAME LANGUAGE** as the user.
+        - **Code-Mixing:** If user says "Mujhe paani chahiye", response should be "Haan ji, paani ka station nazdeek hai." (Natural Hinglish).
+        - **Voice Optimization:** Use punctuation to create natural pauses (commas, ellipses...).
+        - **Ending:** Always end with a personal touch: "Stay safe", "Call me if you need help."
         `;
 
         const contents: any[] = [];
@@ -211,12 +226,33 @@ Nearest Toilet: ${nearestToilet ? `${nearestToilet.name} (${formatDistance(neare
             },
         });
 
+
         return { response: JSON.parse(result.text) };
 
     } catch (error) {
         console.error("Error generating response:", error);
-        return { response: { summary: "हर हर महादेव! मुझे अभी कुछ समस्या हो रही है। कृपया थोड़ी देर बाद पुनः प्रयास करें। / I'm having a little trouble. Please try again." } };
+        return { response: getFallbackResponse(query) };
     }
+}
+
+function getFallbackResponse(query: string): StructuredResponse {
+    const lowerQuery = query.toLowerCase();
+    let fallbackSummary = "🙏 हर हर महादेव!\n\nAI service is currently unavailable, but I can still help you!\n\n";
+
+    // Check for common queries and provide static responses
+    if (lowerQuery.includes('emergency') || lowerQuery.includes('help') || lowerQuery.includes('मदद')) {
+        fallbackSummary += "**Emergency Numbers:**\n• Ambulance: 108\n• Police: 100\n• Kumbh Control Room: 1800-233-4444";
+    } else if (lowerQuery.includes('toilet') || lowerQuery.includes('शौचालय')) {
+        fallbackSummary += "Please use the **Facilities** tab to find nearby toilets with navigation.";
+    } else if (lowerQuery.includes('water') || lowerQuery.includes('पानी')) {
+        fallbackSummary += "Please use the **Facilities** tab to find drinking water stations nearby.";
+    } else if (lowerQuery.includes('ghat') || lowerQuery.includes('घाट') || lowerQuery.includes('snan') || lowerQuery.includes('स्नान')) {
+        fallbackSummary += "**Important Ghats:**\n• Ramkund - Main ghat for snan\n• Tapovan - Ancient meditation site\n• Panchavati - Where Lord Rama stayed\n\nUse the **Map** tab to navigate!";
+    } else {
+        fallbackSummary += "Please try:\n• Using the **Facilities** tab to find amenities\n• Using the **Map** tab for navigation\n• Using the **SOS** button for emergencies";
+    }
+
+    return { summary: fallbackSummary };
 }
 
 // Keep these for backward compatibility but they're not used in Kumbh Sarthi
